@@ -1,0 +1,337 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  DatabricksWorkspaceName:
+    Type: String
+    Default: wk1
+
+  VpcSubnetAzASide:
+    Type: AWS::EC2::AvailabilityZone::Name
+    Default: ap-northeast-1a
+  
+  VpcSubnetAzBSide:
+    Type: AWS::EC2::AvailabilityZone::Name
+    Default: ap-northeast-1c
+
+  DatabricksSccEndpointServiceName:
+    Type: String
+    Default: com.amazonaws.vpce.ap-northeast-1.vpce-svc-02aa633bda3edbec0
+
+  DatabricksWorkspaceEndpointServiceName:
+    Type: String
+    Default: com.amazonaws.vpce.ap-northeast-1.vpce-svc-02691fd610d24fd64
+
+Resources:
+  # ----------------------------------------
+  # VPC
+  # Reference: https://docs.databricks.com/ja/security/network/classic/customer-managed-vpc.html
+  # ----------------------------------------
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - { Key: Name, Value: databricks-vpc }
+        - { Key: Service, Value: databricks-common }
+
+  # ----------------------------------------
+  # VPC Subnet 1 Public
+  # ----------------------------------------
+  VpcSubnet1Public:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref VpcSubnetAzASide
+      CidrBlock: 10.0.0.0/20
+      VpcId: !Ref Vpc
+      Tags:
+        - { Key: Name, Value: databricks-subnet1-public }
+        - { Key: Service, Value: databricks-common }
+
+  VpcSubnet1PublicRouteTable:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref VpcSubnet1Public
+      RouteTableId: !Ref VpcRouteTablePublic
+
+  # ----------------------------------------
+  # VPC Subnet 2 Cluster
+  # ----------------------------------------
+  VpcSubnet2Cluster:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref VpcSubnetAzASide
+      CidrBlock: 10.0.16.0/20
+      VpcId: !Ref Vpc
+      Tags:
+        - { Key: Name, Value: !Sub "databricks-subnet2-cluster-${DatabricksWorkspaceName}" }
+        - { Key: Service, Value: !Sub "databricks-${DatabricksWorkspaceName}" }
+
+  VpcSubnet2ClusterRouteTable:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref VpcSubnet2Cluster
+      RouteTableId: !Ref VpcRouteTableCluster
+
+  # ----------------------------------------
+  # VPC Subnet 3 Cluster
+  # ----------------------------------------
+  VpcSubnet3Cluster:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref VpcSubnetAzBSide
+      CidrBlock: 10.0.32.0/20
+      VpcId: !Ref Vpc
+      Tags:
+        - { Key: Name, Value: !Sub "databricks-subnet3-cluster-${DatabricksWorkspaceName}" }
+        - { Key: Service, Value: !Sub "databricks-${DatabricksWorkspaceName}" }
+
+  VpcSubnet3ClusterRouteTable:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref VpcSubnet3Cluster
+      RouteTableId: !Ref VpcRouteTableCluster
+
+  # ----------------------------------------
+  # VPC Subnet 4 Private
+  # ----------------------------------------
+  VpcSubnet4Private:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref VpcSubnetAzBSide
+      CidrBlock: 10.0.48.0/20
+      VpcId: !Ref Vpc
+      Tags:
+        - { Key: Name, Value: databricks-subnet4-private }
+        - { Key: Service, Value: databricks-common }
+
+  # ----------------------------------------
+  # VPC Routing
+  # ----------------------------------------
+  VpcRouteTablePublic:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - { Key: Name, Value: !Sub "databricks-${DatabricksWorkspaceName}-rtb-public" }
+        - { Key: Service, Value: !Sub "databricks-${DatabricksWorkspaceName}" }
+
+  VpcRouteTablePublicEntryInternetGw:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref VpcRouteTablePublic
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGw
+
+  VpcRouteTableCluster:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - { Key: Name, Value: !Sub "databricks-${DatabricksWorkspaceName}-rtb-cluster" }
+        - { Key: Service, Value: !Sub "databricks-${DatabricksWorkspaceName}" }
+
+  VpcRouteTableClusterEntryNatGw:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref VpcRouteTableCluster
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGW
+
+  # ----------------------------------------
+  # VPC Security Group
+  # ----------------------------------------
+  VpcSecurityGroupPublic:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "databricks-${DatabricksWorkspaceName}-sg-public"
+      GroupDescription: databricks frontend
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 443, ToPort: 443, CidrIp: 0.0.0.0/0 }
+      Tags:
+        - { Key: Service, Value: databricks-common }
+
+  VpcSecurityGroupCluster:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "databricks-${DatabricksWorkspaceName}-sg-cluster"
+      GroupDescription: databricks private nodes
+      VpcId: !Ref Vpc
+      SecurityGroupEgress:
+        - { IpProtocol: tcp, FromPort: 443, ToPort: 443, CidrIp: 0.0.0.0/0 }
+        - { IpProtocol: tcp, FromPort: 3306, ToPort: 3306, CidrIp: 0.0.0.0/0 }
+        - { IpProtocol: tcp, FromPort: 6666, ToPort: 6666, CidrIp: 0.0.0.0/0 }
+        - { IpProtocol: tcp, FromPort: 2443, ToPort: 2443, CidrIp: 0.0.0.0/0 }
+        - { IpProtocol: tcp, FromPort: 8443, ToPort: 8451, CidrIp: 0.0.0.0/0 }
+      Tags:
+        - { Key: Service, Value: !Sub "databricks-${DatabricksWorkspaceName}" }
+
+  VpcSecurityGroupClusterIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: -1
+      GroupId: !GetAtt VpcSecurityGroupCluster.GroupId
+      SourceSecurityGroupId: !GetAtt VpcSecurityGroupCluster.GroupId
+
+  VpcSecurityGroupClusterEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      IpProtocol: -1
+      GroupId: !GetAtt VpcSecurityGroupCluster.GroupId
+      DestinationSecurityGroupId: !GetAtt VpcSecurityGroupCluster.GroupId
+
+  VpcSecurityGroupEndpoint:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "databricks-${DatabricksWorkspaceName}-sg-endpoint"
+      GroupDescription: databricks private nodes
+      VpcId: !Ref Vpc
+      Tags:
+        - { Key: Service, Value: databricks-common }
+
+  VpcSecurityGroupEndpointIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: -1
+      GroupId: !GetAtt VpcSecurityGroupEndpoint.GroupId
+      SourceSecurityGroupId: !GetAtt VpcSecurityGroupEndpoint.GroupId
+
+  VpcSecurityGroupEndpointEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      IpProtocol: -1
+      GroupId: !GetAtt VpcSecurityGroupEndpoint.GroupId
+      DestinationSecurityGroupId: !GetAtt VpcSecurityGroupEndpoint.GroupId
+
+  # ----------------------------------------
+  # VPC Resources
+  # ----------------------------------------
+  NatGW:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      SubnetId: !Ref VpcSubnet1Public
+      AllocationId: !GetAtt NatGwEip.AllocationId
+      Tags:
+        - { Key: Name, Value: databricks-natgw }
+        - { Key: Service, Value: databricks-common }
+  
+  NatGwEip:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - { Key: Name, Value: databricks-natgw-eip }
+        - { Key: Service, Value: databricks-common }
+
+  InternetGw:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - { Key: Name, Value: databricks-igw }
+        - { Key: Service, Value: databricks-common }
+  
+  InternetGwAttach:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref Vpc
+      InternetGatewayId: !Ref InternetGw
+
+  # ----------------------------------------
+  # VPC Resources (無くても良いが推奨)
+  # ----------------------------------------
+  S3Endpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+      VpcEndpointType: Gateway
+      VpcId: !Ref Vpc
+      RouteTableIds: [!Ref VpcRouteTableCluster]
+
+  StsEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.sts
+      VpcEndpointType: Interface
+      VpcId: !Ref Vpc
+      SubnetIds: [!Ref VpcSubnet4Private]
+      SecurityGroupIds: [!GetAtt VpcSecurityGroupEndpoint.GroupId]
+      PrivateDnsEnabled: true
+
+  KinesisEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.kinesis-streams
+      VpcEndpointType: Interface
+      VpcId: !Ref Vpc
+      SubnetIds: [!Ref VpcSubnet4Private]
+      SecurityGroupIds: [!GetAtt VpcSecurityGroupEndpoint.GroupId]
+      PrivateDnsEnabled: true
+
+  # ----------------------------------------
+  # Control Plane PrivateLink
+  # Reference: https://docs.databricks.com/ja/security/network/classic/privatelink.html
+  # ----------------------------------------
+  DatabricksFrontendEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Ref DatabricksWorkspaceEndpointServiceName
+      VpcEndpointType: Interface
+      VpcId: !Ref Vpc
+      SubnetIds: [!Ref VpcSubnet1Public]
+      SecurityGroupIds: [!GetAtt VpcSecurityGroupPublic.GroupId]
+      PrivateDnsEnabled: false
+
+  DatabricksSccEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Ref DatabricksSccEndpointServiceName
+      VpcEndpointType: Interface
+      VpcId: !Ref Vpc
+      SubnetIds: [!Ref VpcSubnet4Private]
+      SecurityGroupIds: [!GetAtt VpcSecurityGroupEndpoint.GroupId]
+      PrivateDnsEnabled: true
+
+  DatabricksWorkspaceEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Ref DatabricksWorkspaceEndpointServiceName
+      VpcEndpointType: Interface
+      VpcId: !Ref Vpc
+      SubnetIds: [!Ref VpcSubnet4Private]
+      SecurityGroupIds: [!GetAtt VpcSecurityGroupEndpoint.GroupId]
+      PrivateDnsEnabled: true
+
+Outputs:
+  NetworkSettingsVpcId:
+    Value: !Ref Vpc
+    Description: VPC ID for Network Setting on Databricks Account Console. 
+
+  NetworkSettingSubnetA:
+    Value: !Ref VpcSubnet2Cluster
+    Description: Subnet ID for Network Setting on Databricks Account Console.
+
+  NetworkSettingSubnetB:
+    Value: !Ref VpcSubnet3Cluster
+    Description: Subnet ID for Network Setting on Databricks Account Console.
+
+  NetworkSettingSecurityGroup1:
+    Value: !GetAtt VpcSecurityGroupCluster.GroupId
+    Description: SecurityGroup ID for Network Setting on Databricks Account Console.
+
+  NetworkSettingSecurityGroup2:
+    Value: !GetAtt VpcSecurityGroupEndpoint.GroupId
+    Description: SecurityGroup ID for Network Setting on Databricks Account Console.
+
+  VPCEndpointScc:
+    Value: !Ref DatabricksSccEndpoint
+    Description: Scc Endpoint ID for VPC Endpoint on Databricks Account Console.
+
+  VPCEndpointWorkspace:
+    Value: !Ref DatabricksWorkspaceEndpoint
+    Description: Workspace Endpoint ID for VPC Endpoint on Databricks Account Console.
+
+  VPCEndpointFrontend:
+    Value: !Ref DatabricksFrontendEndpoint
+    Description: Frontend Endpoint ID for VPC Endpoint on Databricks Account Console.

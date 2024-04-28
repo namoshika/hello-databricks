@@ -1,0 +1,4 @@
+{
+    "yaml.schemaStore.enable": false,
+    "cfnLint.path": ".venv/bin/cfn-lint"
+}
