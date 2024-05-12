@@ -51,6 +51,8 @@ Resources:
              - !Sub arn:${AWS::Partition}:s3:::${S3BucketManagedDatabricks}
             Condition:
               StringEquals: { aws:PrincipalTag/DatabricksAccountId: !Ref DatabricksAccountId }
+          # 現在のワークスペース作成手順に則ると UnityCatalog と同居する為のポリシーが生成される。
+          # Reference: https://docs.databricks.com/ja/admin/workspace/create-uc-workspace.html
           - Sid: Prevent DBFS from accessing Unity Catalog metastore
             Effect: Deny
             Principal: { AWS: arn:aws:iam::414351767826:root }

@@ -111,32 +111,6 @@ Resources:
                 Condition:
                   StringLike:
                     iam:AWSServiceName: spot.amazonaws.com
-              - Effect: Allow
-                # Databricks のクラスターが databricks-iamrole-cluster ロールを使うことを許可
-                Resource: !GetAtt IamRoleCluster.Arn
-                Action:
-                  - iam:PassRole
-
-  IamRoleCluster:
-    # Databricks のクラスターで使う EC2 が S3 を読むことを許可 (但しサーバーレスSQLウェアハウスへは非対応).
-    # Reference: https://docs.databricks.com/ja/connect/storage/tutorial-s3-instance-profile.html
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: databricks-iamrole-cluster
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal: { Service: ec2.amazonaws.com }
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
-
-  IamInstanceProfileCluster:
-    Type: AWS::IAM::InstanceProfile
-    Properties:
-      InstanceProfileName: !Ref IamRoleCluster
-      Roles: [!Ref IamRoleCluster]
 
 Outputs:
   CredentialName:
@@ -146,11 +120,3 @@ Outputs:
   IAMRoleForCredential:
     Value: !GetAtt IamRoleDatabricksToAws.Arn
     Description: IAM Role ARN for Credential Information entry on Databricks Account Console.
-
-  IAMRoleForCluster:
-    Value: !GetAtt IamRoleCluster.Arn
-    Description: IAM Role for clusters on Databricks Workspace.
-
-  IAMInstanceProfileForCluster:
-    Value: !GetAtt IamInstanceProfileCluster.Arn
-    Description: IAM Instance Profile for clusters on Databricks Workspace.
