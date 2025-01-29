@@ -17,11 +17,21 @@ Databricks 学習用の砂場
 
 **パラメーターファイルを編集**
 
-```
-# terraform/02-databricks-base.tfvars
+```ini
+# Rename: terraform/01-base/terraform.tfvars.sample
+# -> terraform.tfvars
+aws_s3_bucketname_input = "{入力データ用 S3 BucketName}"
+aws_s3_bucketname_workspace = "{ワークスペースカタログ用 S3 BucketName}"
 databricks_account_id = "{DatabricksのアカウントID}"
 
-# terraform/03-databricks-workspace-basic.tfvars
+# Rename: terraform/02-databricks-base/terraform.tfvars.sample
+# -> terraform.tfvars
+aws_region = "{デプロイ先 AWS リージョン}"
+databricks_account_id = "{DatabricksのアカウントID}"
+
+# Rename: terraform/03-databricks-workspace-basic/terraform.tfvars.sample
+# -> terraform.tfvars
+aws_region = "{デプロイ先 AWS リージョン}"
 databricks_usermail_admin = "{管理者アカウントのメールアドレス}"
 databricks_workspace_name = "{ワークスペースの名前}"
 ```
@@ -29,7 +39,7 @@ databricks_workspace_name = "{ワークスペースの名前}"
 **ターミナルを起動し実行**  
 カレントディレクトリ: このリポジトリのルートディレクトリ
 
-```bash
+```sh
 # サンプルデータセットを入力データ用S3バケットへアップ
 aws s3 cp --recursive 'data/' 's3://{INPUT_STORAGE_BUCKET}/data/'
 
@@ -51,7 +61,7 @@ terraform -chdir='terraform/02-databricks-base' apply
 ワークスペースを作成する際に都度実行する。  
 作成すると AWS 上に NAT ゲートウェイが生成され、常に AWS の使用料金が発生する。そのため、使わない時は削除しておくと良い。
 
-```bash
+```sh
 # Databricks のワークスペースを作成
 terraform -chdir='terraform/03-databricks-workspace-basic' init
 terraform -chdir='terraform/03-databricks-workspace-basic' apply
@@ -64,7 +74,7 @@ terraform -chdir='terraform/04-databricks-home' apply -var 'profile=w01'
 
 ## 4. Cleanup
 
-```bash
+```sh
 terraform -chdir='terraform/04-databricks-home' destroy -var 'profile=w01'
 terraform -chdir='terraform/03-databricks-workspace-basic' destroy
 terraform -chdir='terraform/02-databricks-base' destroy

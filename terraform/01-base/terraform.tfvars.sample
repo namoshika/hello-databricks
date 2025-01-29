@@ -1,0 +1,3 @@
+aws_s3_bucketname_input = "..."
+aws_s3_bucketname_workspace = "..."
+databricks_account_id = "..."
