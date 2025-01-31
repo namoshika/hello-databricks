@@ -23,6 +23,14 @@ variable "databricks_client_secret" {
 variable "databricks_credentials_id" { type = string }
 variable "databricks_metastore_id" { type = string }
 variable "databricks_storage_configuration_id" { type = string }
+variable "databricks_network_id" {
+  type    = string
+  default = null
+}
+variable "databricks_private_access_settings_id" {
+  type    = string
+  default = null
+}
 variable "databricks_principal_owner" { type = string }
 variable "databricks_workspace_name" { type = string }
 
@@ -30,12 +38,14 @@ variable "databricks_workspace_name" { type = string }
 # Account Scope - Workspace
 # ----------------------------
 resource "databricks_mws_workspaces" "sample" {
-  provider                 = databricks.mws
-  account_id               = var.databricks_account_id
-  aws_region               = var.aws_region
-  credentials_id           = var.databricks_credentials_id
-  storage_configuration_id = var.databricks_storage_configuration_id
-  workspace_name           = var.databricks_workspace_name
+  provider                   = databricks.mws
+  account_id                 = var.databricks_account_id
+  aws_region                 = var.aws_region
+  credentials_id             = var.databricks_credentials_id
+  storage_configuration_id   = var.databricks_storage_configuration_id
+  workspace_name             = var.databricks_workspace_name
+  network_id                 = var.databricks_network_id
+  private_access_settings_id = var.databricks_private_access_settings_id
 }
 resource "databricks_metastore_assignment" "base" {
   provider             = databricks.mws

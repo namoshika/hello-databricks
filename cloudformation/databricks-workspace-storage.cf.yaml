@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Description: "Reference: https://docs.databricks.com/ja/data-governance/unity-catalog/create-metastore.html"
 
 Parameters:
@@ -21,7 +21,7 @@ Parameters:
     Description: IAM Role ARN for self-assume.
 
 Conditions:
-    IsFirstStep: !Equals ["True", !Ref IsFirstStep]
+  IsFirstStep: !Equals ["True", !Ref IsFirstStep]
 
 Resources:
   # ワークスペース用 S3 バケットを作成
@@ -29,7 +29,7 @@ Resources:
     Type: AWS::S3::Bucket
     UpdateReplacePolicy: Retain
     DeletionPolicy: Delete
-    Properties: 
+    Properties:
       BucketName: !Ref S3BucketName
 
   # ワークスペース用 S3 バケットに対する Databricks からのアクセスを許可 (BucketPolicy)
@@ -37,7 +37,7 @@ Resources:
     Type: AWS::S3::BucketPolicy
     Properties:
       Bucket: !Ref S3BucketManagedDatabricks
-      PolicyDocument: 
+      PolicyDocument:
         Version: "2012-10-17"
         Statement:
           - Sid: Grant Databricks Access
@@ -51,10 +51,13 @@ Resources:
               - s3:ListBucket
               - s3:GetBucketLocation
             Resource:
-             - !Sub arn:${AWS::Partition}:s3:::${S3BucketManagedDatabricks}/*
-             - !Sub arn:${AWS::Partition}:s3:::${S3BucketManagedDatabricks}
+              - !Sub arn:${AWS::Partition}:s3:::${S3BucketManagedDatabricks}/*
+              - !Sub arn:${AWS::Partition}:s3:::${S3BucketManagedDatabricks}
             Condition:
-              StringEquals: { aws:PrincipalTag/DatabricksAccountId: !Ref DatabricksAccountId }
+              StringEquals:
+                {
+                  aws:PrincipalTag/DatabricksAccountId: !Ref DatabricksAccountId,
+                }
           # 現在のワークスペース作成手順に則ると UnityCatalog と同居する為のポリシーが生成される。
           # Reference: https://docs.databricks.com/ja/admin/workspace/create-uc-workspace.html
           - Sid: Prevent DBFS from accessing Unity Catalog metastore
@@ -62,7 +65,7 @@ Resources:
             Principal: { AWS: arn:aws:iam::414351767826:root }
             Action: s3:*
             Resource: !Sub arn:${AWS::Partition}:s3:::${S3BucketManagedDatabricks}/unity-catalog/*
-  
+
   # ワークスペース用 S3 バケットに対する Databricks からのアクセスを許可 (IAM Role)
   IamRoleDatabricksToS3Bucket:
     Type: AWS::IAM::Role
@@ -77,7 +80,11 @@ Resources:
                 - arn:aws:iam::414351767826:role/unity-catalog-prod-UCMasterRole-14S5ZJVKOTYTL
                 # このスタックはデプロイ後に再度スタック更新を行う。生成するIAM ロールの ARN を
                 # 初回デプロイの段階で確定させ、スタック更新の段階で確定した ARN で自己仮定させる
-                - !If [IsFirstStep, !Ref AWS::NoValue, !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${IamRoleName}"]
+                - !If [
+                    IsFirstStep,
+                    !Ref AWS::NoValue,
+                    !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${IamRoleName}",
+                  ]
             Action: sts:AssumeRole
             Condition:
               StringEquals: { sts:ExternalId: !Ref DatabricksAccountId }

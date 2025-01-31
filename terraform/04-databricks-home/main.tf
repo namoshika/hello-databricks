@@ -32,11 +32,11 @@ data "databricks_current_user" "me" {
 }
 data "terraform_remote_state" "base" {
   backend = "local"
-  config  = { path = "../tfstates/01-base.tfstate" }
+  config  = { path = "../tfstates/01-aws-base.tfstate" }
 }
 data "terraform_remote_state" "workspace" {
   backend = "local"
-  config  = { path = "../tfstates/03-databricks-workspace-basic.tfstate" }
+  config  = { path = "../tfstates/03-databricks-workspace.tfstate" }
 }
 locals {
   aws_s3_bucketname_storage = data.terraform_remote_state.base.outputs.external_aws_s3_bucketname_storage
@@ -60,14 +60,14 @@ resource "terraform_data" "run_script" {
 # Delta Live Table を設定
 # ----------------------------
 resource "databricks_pipeline" "sample_pipeline" {
-  provider      = databricks.workspace
-  depends_on    = [terraform_data.run_script]
-  name          = "sample-pipeline"
-  catalog       = local.databricks_workspace_name
-  target        = "default"
-  continuous    = false
-  development   = true
-  serverless    = true
+  provider    = databricks.workspace
+  depends_on  = [terraform_data.run_script]
+  name        = "sample-pipeline"
+  catalog     = local.databricks_workspace_name
+  target      = "default"
+  continuous  = false
+  development = true
+  # serverless    = true
   configuration = { "DATA_BUCKET_NAME" = local.aws_s3_bucketname_storage }
 
   library {

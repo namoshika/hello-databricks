@@ -1,0 +1,175 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Reference: https://docs.aws.amazon.com/msk/latest/developerguide/getting-started.html"
+
+Parameters:
+  VpcSubnetAzASide:
+    Type: AWS::EC2::AvailabilityZone::Name
+    Default: ap-northeast-1a
+
+  VpcSubnetAzBSide:
+    Type: AWS::EC2::AvailabilityZone::Name
+    Default: ap-northeast-1c
+
+Resources:
+  # ----------------------------------------
+  # VPC
+  # ----------------------------------------
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.1.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - { Key: Name, Value: dbx-vpc-external }
+
+  # ----------------------------------------
+  # VPC Subnet A Public
+  # ----------------------------------------
+  VpcSubnetAPublic:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref VpcSubnetAzASide
+      CidrBlock: 10.1.0.0/20
+      VpcId: !Ref Vpc
+      Tags:
+        - { Key: Name, Value: dbx-subnet-external-a-public }
+
+  VpcSubnetAPublicRouteTable:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref VpcSubnetAPublic
+      RouteTableId: !Ref VpcRouteTablePublic
+
+  # ----------------------------------------
+  # VPC Subnet A Private
+  # ----------------------------------------
+  VpcSubnetAPrivate:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref VpcSubnetAzASide
+      CidrBlock: 10.1.16.0/20
+      VpcId: !Ref Vpc
+      Tags:
+        - { Key: Name, Value: "dbx-subnet-external-a-private" }
+
+  # ----------------------------------------
+  # VPC Subnet B Public
+  # ----------------------------------------
+  VpcSubnetBPublic:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref VpcSubnetAzBSide
+      CidrBlock: 10.1.32.0/20
+      VpcId: !Ref Vpc
+      Tags:
+        - { Key: Name, Value: "dbx-subnet-external-b-public" }
+
+  VpcSubnetBPublicRouteTable:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref VpcSubnetBPublic
+      RouteTableId: !Ref VpcRouteTablePublic
+
+  # ----------------------------------------
+  # VPC Subnet B Private
+  # ----------------------------------------
+  VpcSubnetBPrivate:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref VpcSubnetAzBSide
+      CidrBlock: 10.1.48.0/20
+      VpcId: !Ref Vpc
+      Tags:
+        - { Key: Name, Value: dbx-subnet-external-b-private }
+
+  # ----------------------------------------
+  # VPC Routing
+  # ----------------------------------------
+  VpcRouteTablePublic:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - { Key: Name, Value: "dbx-rtb-external-public" }
+
+  VpcRouteTablePublicEntryInternetGw:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref VpcRouteTablePublic
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGw
+
+  # ----------------------------------------
+  # VPC InternetGW
+  # ----------------------------------------
+  InternetGw:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - { Key: Name, Value: dbx-igw-external }
+
+  InternetGwAttach:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref Vpc
+      InternetGatewayId: !Ref InternetGw
+
+  # ----------------------------------------
+  # VPC Security Group
+  # ----------------------------------------
+  VpcSecurityGroupInternal:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: "dbx-sg-external-internal"
+      GroupDescription: Databricks lab external network SG - internal
+      VpcId: !Ref Vpc
+      Tags:
+        - { Key: Name, Value: dbx-sg-external-internal }
+
+  VpcSecurityGroupInternalIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: -1
+      GroupId: !GetAtt VpcSecurityGroupInternal.GroupId
+      SourceSecurityGroupId: !GetAtt VpcSecurityGroupInternal.GroupId
+
+  VpcSecurityGroupInternalEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      IpProtocol: -1
+      GroupId: !GetAtt VpcSecurityGroupInternal.GroupId
+      DestinationSecurityGroupId: !GetAtt VpcSecurityGroupInternal.GroupId
+
+  VpcSecurityGroupPublic:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: "dbx-sg-external-public"
+      GroupDescription: Databricks lab external network SG - public
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 22, ToPort: 22, CidrIp: 0.0.0.0/0 }
+      Tags:
+        - { Key: Name, Value: dbx-sg-external-public }
+
+Outputs:
+  NetworkSettingsVpcId:
+    Value: !Ref Vpc
+
+  NetworkSettingSubnetAPublic:
+    Value: !Ref VpcSubnetAPublic
+
+  NetworkSettingSubnetAPrivate:
+    Value: !Ref VpcSubnetAPrivate
+
+  NetworkSettingSubnetBPublic:
+    Value: !Ref VpcSubnetBPublic
+
+  NetworkSettingSubnetBPrivate:
+    Value: !Ref VpcSubnetBPrivate
+
+  NetworkSettingSecurityGroupInternal:
+    Value: !Ref VpcSecurityGroupInternal
+
+  NetworkSettingSecurityGroupPublic:
+    Value: !Ref VpcSecurityGroupPublic

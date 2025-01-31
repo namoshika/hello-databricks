@@ -6,7 +6,7 @@ terraform {
     }
   }
   backend "local" {
-    path = "../tfstates/01-base.tfstate"
+    path = "../tfstates/01-aws-base.tfstate"
   }
 }
 
@@ -36,15 +36,15 @@ provider "aws" {
 # AWS Cfn Databricks Stack
 # ----------------------------
 resource "aws_cloudformation_stack" "databricks_base" {
-  name          = "dbx-base-basic"
-  template_body = file("../../cloudformation/databricks-base-basic.cf.yaml")
+  name          = "dbx-base"
+  template_body = file("../../cloudformation/databricks-base.cf.yaml")
   parameters    = { DatabricksAccountId = var.databricks_account_id }
   tags          = { Service = "hello-databricks" }
   capabilities  = ["CAPABILITY_NAMED_IAM"]
 }
 resource "aws_cloudformation_stack" "databricks_storage" {
   name          = "dbx-workspace-storage"
-  template_body = file("../../cloudformation/databricks-storage-workspace.cf.yaml")
+  template_body = file("../../cloudformation/databricks-workspace-storage.cf.yaml")
   parameters = {
     DatabricksAccountId = var.databricks_account_id,
     S3BucketName        = var.aws_s3_bucketname_workspace
@@ -57,6 +57,11 @@ resource "aws_cloudformation_stack" "databricks_storage" {
 # ----------------------------
 # AWS Cfn External Stack
 # ----------------------------
+resource "aws_cloudformation_stack" "external_base" {
+  name          = "dbx-external-base"
+  template_body = file("../../cloudformation/external-base.cf.yaml")
+  tags          = { Service = "hello-databricks" }
+}
 resource "aws_cloudformation_stack" "external_storage" {
   name          = "dbx-external-storage"
   template_body = file("../../cloudformation/external-storage.cf.yaml")
@@ -72,8 +77,11 @@ resource "aws_cloudformation_stack" "external_storage" {
 # ----------------------------
 # Output databricks
 # ----------------------------
-output "aws_iamrole_arn_credential" {
-  value = aws_cloudformation_stack.databricks_base.outputs["IAMRoleForCredential"]
+output "aws_iamrole_arn_credential_basic" {
+  value = aws_cloudformation_stack.databricks_base.outputs["IAMRoleForCredentialBasic"]
+}
+output "aws_iamrole_arn_credential_cmvpc" {
+  value = aws_cloudformation_stack.databricks_base.outputs["IAMRoleForCredentialCmvpc"]
 }
 output "aws_iamrole_arn_storage" {
   value = aws_cloudformation_stack.databricks_storage.outputs["IamRoleArn"]
@@ -81,9 +89,31 @@ output "aws_iamrole_arn_storage" {
 output "aws_s3_bucketname_storage" {
   value = aws_cloudformation_stack.databricks_storage.outputs["S3BucketName"]
 }
-output "external_aws_iam_role_arn_storage" {
+
+# ----------------------------
+# Output external
+# ----------------------------
+output "external_aws_iamrole_arn_storage" {
   value = aws_cloudformation_stack.external_storage.outputs["IamRoleArn"]
 }
 output "external_aws_s3_bucketname_storage" {
   value = aws_cloudformation_stack.external_storage.outputs["S3BucketName"]
+}
+output "external_aws_subnetid_apublic" {
+  value = aws_cloudformation_stack.external_base.outputs["NetworkSettingSubnetAPublic"]
+}
+output "external_aws_subnetid_aprivate" {
+  value = aws_cloudformation_stack.external_base.outputs["NetworkSettingSubnetAPrivate"]
+}
+output "external_aws_subnetid_bpublic" {
+  value = aws_cloudformation_stack.external_base.outputs["NetworkSettingSubnetBPublic"]
+}
+output "external_aws_subnetid_bprivate" {
+  value = aws_cloudformation_stack.external_base.outputs["NetworkSettingSubnetBPrivate"]
+}
+output "external_aws_securitygroup_internal" {
+  value = aws_cloudformation_stack.external_base.outputs["NetworkSettingSecurityGroupInternal"]
+}
+output "external_aws_securitygroup_public" {
+  value = aws_cloudformation_stack.external_base.outputs["NetworkSettingSecurityGroupPublic"]
 }

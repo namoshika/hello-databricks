@@ -1,23 +1,17 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 
 Parameters:
-  DatabricksWorkspaceName:
-    Type: String
-    Default: wk1
-
   VpcSubnetAzASide:
     Type: AWS::EC2::AvailabilityZone::Name
-    Default: ap-northeast-1a
-  
+
   VpcSubnetAzBSide:
     Type: AWS::EC2::AvailabilityZone::Name
-    Default: ap-northeast-1c
 
   DatabricksSccEndpointServiceName:
     Type: String
     Default: com.amazonaws.vpce.ap-northeast-1.vpce-svc-02aa633bda3edbec0
 
-  DatabricksWorkspaceEndpointServiceName:
+  DatabricksRestEndpointServiceName:
     Type: String
     Default: com.amazonaws.vpce.ap-northeast-1.vpce-svc-02691fd610d24fd64
 
@@ -45,7 +39,7 @@ Resources:
       CidrBlock: 10.0.0.0/20
       VpcId: !Ref Vpc
       Tags:
-        - { Key: Name, Value: dbx-workspace-subnet1-public }
+        - { Key: Name, Value: dbx-subnet-workspace-a-public }
 
   VpcSubnet1PublicRouteTable:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -63,7 +57,10 @@ Resources:
       CidrBlock: 10.0.16.0/20
       VpcId: !Ref Vpc
       Tags:
-        - { Key: Name, Value: !Sub "dbx-workspace-subnet2-cluster-${DatabricksWorkspaceName}" }
+        - {
+            Key: Name,
+            Value: !Sub "dbx-subnet-workspace-a-cluster",
+          }
 
   VpcSubnet2ClusterRouteTable:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -81,7 +78,10 @@ Resources:
       CidrBlock: 10.0.32.0/20
       VpcId: !Ref Vpc
       Tags:
-        - { Key: Name, Value: !Sub "dbx-workspace-subnet3-cluster-${DatabricksWorkspaceName}" }
+        - {
+            Key: Name,
+            Value: !Sub "dbx-subnet-workspace-b-cluster",
+          }
 
   VpcSubnet3ClusterRouteTable:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -99,7 +99,7 @@ Resources:
       CidrBlock: 10.0.48.0/20
       VpcId: !Ref Vpc
       Tags:
-        - { Key: Name, Value: dbx-workspace-subnet4-private }
+        - { Key: Name, Value: dbx-subnet-workspace-b-private }
 
   # ----------------------------------------
   # VPC Routing
@@ -109,7 +109,7 @@ Resources:
     Properties:
       VpcId: !Ref Vpc
       Tags:
-        - { Key: Name, Value: !Sub "dbx-rtb-public" }
+        - { Key: Name, Value: "dbx-rtb-public" }
 
   VpcRouteTablePublicEntryInternetGw:
     Type: AWS::EC2::Route
@@ -123,7 +123,7 @@ Resources:
     Properties:
       VpcId: !Ref Vpc
       Tags:
-        - { Key: Name, Value: !Sub "dbx-rtb-cluster" }
+        - { Key: Name, Value: "dbx-rtb-cluster" }
 
   VpcRouteTableClusterEntryNatGw:
     Type: AWS::EC2::Route
@@ -138,16 +138,29 @@ Resources:
   VpcSecurityGroupPublic:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: !Sub "dbx-sg-public"
+      GroupName: "dbx-sg-public"
+      GroupDescription: databricks public
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 22, ToPort: 22, CidrIp: 0.0.0.0/0 }
+      Tags:
+        - { Key: Name, Value: dbx-sg-public }
+
+  VpcSecurityGroupFront:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: "dbx-sg-front"
       GroupDescription: databricks frontend
       VpcId: !Ref Vpc
       SecurityGroupIngress:
         - { IpProtocol: tcp, FromPort: 443, ToPort: 443, CidrIp: 0.0.0.0/0 }
+      Tags:
+        - { Key: Name, Value: dbx-sg-front }
 
   VpcSecurityGroupCluster:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: !Sub "dbx-sg-cluster"
+      GroupName: "dbx-sg-cluster"
       GroupDescription: databricks private nodes
       VpcId: !Ref Vpc
       SecurityGroupEgress:
@@ -156,41 +169,74 @@ Resources:
         - { IpProtocol: tcp, FromPort: 6666, ToPort: 6666, CidrIp: 0.0.0.0/0 }
         - { IpProtocol: tcp, FromPort: 2443, ToPort: 2443, CidrIp: 0.0.0.0/0 }
         - { IpProtocol: tcp, FromPort: 8443, ToPort: 8451, CidrIp: 0.0.0.0/0 }
+      Tags:
+        - { Key: Name, Value: dbx-sg-cluster }
 
   VpcSecurityGroupClusterIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       IpProtocol: -1
-      GroupId: !GetAtt VpcSecurityGroupCluster.GroupId
-      SourceSecurityGroupId: !GetAtt VpcSecurityGroupCluster.GroupId
+      GroupId: !Ref VpcSecurityGroupCluster
+      SourceSecurityGroupId: !Ref VpcSecurityGroupCluster
 
   VpcSecurityGroupClusterEgress:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
       IpProtocol: -1
-      GroupId: !GetAtt VpcSecurityGroupCluster.GroupId
-      DestinationSecurityGroupId: !GetAtt VpcSecurityGroupCluster.GroupId
+      GroupId: !Ref VpcSecurityGroupCluster
+      DestinationSecurityGroupId: !Ref VpcSecurityGroupCluster
 
   VpcSecurityGroupEndpoint:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: !Sub "dbx-sg-endpoint"
+      GroupName: "dbx-sg-endpoint"
       GroupDescription: databricks private nodes
       VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          SourceSecurityGroupId: !Ref VpcSecurityGroupCluster
+        - IpProtocol: tcp
+          FromPort: 6666
+          ToPort: 6666
+          SourceSecurityGroupId: !Ref VpcSecurityGroupCluster
+        - IpProtocol: tcp
+          FromPort: 2443
+          ToPort: 2443
+          SourceSecurityGroupId: !Ref VpcSecurityGroupCluster
+        # ドキュメント的にクラスターからエンドポイント向けには不要。ここでは Kafka Cluster 用に作成
+        - IpProtocol: -1
+          SourceSecurityGroupId: !Ref VpcSecurityGroupCluster
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          DestinationSecurityGroupId: !Ref VpcSecurityGroupCluster
+        - IpProtocol: tcp
+          FromPort: 6666
+          ToPort: 6666
+          DestinationSecurityGroupId: !Ref VpcSecurityGroupCluster
+        - IpProtocol: tcp
+          FromPort: 2443
+          ToPort: 2443
+          DestinationSecurityGroupId: !Ref VpcSecurityGroupCluster
+      Tags:
+        - { Key: Name, Value: dbx-sg-endpoint }
 
   VpcSecurityGroupEndpointIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       IpProtocol: -1
-      GroupId: !GetAtt VpcSecurityGroupEndpoint.GroupId
-      SourceSecurityGroupId: !GetAtt VpcSecurityGroupEndpoint.GroupId
+      GroupId: !Ref VpcSecurityGroupEndpoint
+      SourceSecurityGroupId: !Ref VpcSecurityGroupEndpoint
 
   VpcSecurityGroupEndpointEgress:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
       IpProtocol: -1
-      GroupId: !GetAtt VpcSecurityGroupEndpoint.GroupId
-      DestinationSecurityGroupId: !GetAtt VpcSecurityGroupEndpoint.GroupId
+      GroupId: !Ref VpcSecurityGroupEndpoint
+      DestinationSecurityGroupId: !Ref VpcSecurityGroupEndpoint
 
   # ----------------------------------------
   # VPC Resources
@@ -202,7 +248,7 @@ Resources:
       AllocationId: !GetAtt NatGwEip.AllocationId
       Tags:
         - { Key: Name, Value: dbx-natgw }
-  
+
   NatGwEip:
     Type: AWS::EC2::EIP
     Properties:
@@ -215,7 +261,7 @@ Resources:
     Properties:
       Tags:
         - { Key: Name, Value: dbx-igw }
-  
+
   InternetGwAttach:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
@@ -232,6 +278,8 @@ Resources:
       VpcEndpointType: Gateway
       VpcId: !Ref Vpc
       RouteTableIds: [!Ref VpcRouteTableCluster]
+      Tags:
+        - { Key: Name, Value: dbx-vpce-s3 }
 
   StsEndpoint:
     Type: AWS::EC2::VPCEndpoint
@@ -240,8 +288,10 @@ Resources:
       VpcEndpointType: Interface
       VpcId: !Ref Vpc
       SubnetIds: [!Ref VpcSubnet4Private]
-      SecurityGroupIds: [!GetAtt VpcSecurityGroupEndpoint.GroupId]
+      SecurityGroupIds: [!Ref VpcSecurityGroupEndpoint]
       PrivateDnsEnabled: true
+      Tags:
+        - { Key: Name, Value: dbx-vpce-sts }
 
   KinesisEndpoint:
     Type: AWS::EC2::VPCEndpoint
@@ -250,8 +300,10 @@ Resources:
       VpcEndpointType: Interface
       VpcId: !Ref Vpc
       SubnetIds: [!Ref VpcSubnet4Private]
-      SecurityGroupIds: [!GetAtt VpcSecurityGroupEndpoint.GroupId]
+      SecurityGroupIds: [!Ref VpcSecurityGroupEndpoint]
       PrivateDnsEnabled: true
+      Tags:
+        - { Key: Name, Value: dbx-vpce-kinesis }
 
   # ----------------------------------------
   # Control Plane PrivateLink
@@ -260,12 +312,14 @@ Resources:
   DatabricksFrontendEndpoint:
     Type: AWS::EC2::VPCEndpoint
     Properties:
-      ServiceName: !Ref DatabricksWorkspaceEndpointServiceName
+      ServiceName: !Ref DatabricksRestEndpointServiceName
       VpcEndpointType: Interface
       VpcId: !Ref Vpc
       SubnetIds: [!Ref VpcSubnet1Public]
-      SecurityGroupIds: [!GetAtt VpcSecurityGroupPublic.GroupId]
+      SecurityGroupIds: [!Ref VpcSecurityGroupFront]
       PrivateDnsEnabled: false
+      Tags:
+        - { Key: Name, Value: dbx-vpce-databricks-front }
 
   DatabricksSccEndpoint:
     Type: AWS::EC2::VPCEndpoint
@@ -274,48 +328,84 @@ Resources:
       VpcEndpointType: Interface
       VpcId: !Ref Vpc
       SubnetIds: [!Ref VpcSubnet4Private]
-      SecurityGroupIds: [!GetAtt VpcSecurityGroupEndpoint.GroupId]
+      SecurityGroupIds: [!Ref VpcSecurityGroupEndpoint]
       PrivateDnsEnabled: true
+      Tags:
+        - { Key: Name, Value: dbx-vpce-databricks-scc }
 
-  DatabricksWorkspaceEndpoint:
+  DatabricksInternalEndpoint:
     Type: AWS::EC2::VPCEndpoint
     Properties:
-      ServiceName: !Ref DatabricksWorkspaceEndpointServiceName
+      ServiceName: !Ref DatabricksRestEndpointServiceName
       VpcEndpointType: Interface
       VpcId: !Ref Vpc
       SubnetIds: [!Ref VpcSubnet4Private]
-      SecurityGroupIds: [!GetAtt VpcSecurityGroupEndpoint.GroupId]
+      SecurityGroupIds: [!Ref VpcSecurityGroupEndpoint]
       PrivateDnsEnabled: true
+      Tags:
+        - { Key: Name, Value: dbx-vpce-databricks-internal }
 
 Outputs:
-  NetworkSettingsVpcId:
+  VpcId:
     Value: !Ref Vpc
-    Description: VPC ID for Network Setting on Databricks Account Console. 
+    Description: VPC ID for Network Setting on Databricks Account Console.
 
-  NetworkSettingSubnetA:
+  VpcName:
+    Value: dbx-workspace-vpc
+    Description: VPC Name for Network Setting on Databricks Account Console
+
+  SubnetIdPublic:
+    Value: !Ref VpcSubnet1Public
+    Description: Subnet ID for Network Setting on Databricks Account Console.
+
+  SubnetIdClusterA:
     Value: !Ref VpcSubnet2Cluster
     Description: Subnet ID for Network Setting on Databricks Account Console.
 
-  NetworkSettingSubnetB:
+  SubnetIdClusterB:
     Value: !Ref VpcSubnet3Cluster
     Description: Subnet ID for Network Setting on Databricks Account Console.
 
-  NetworkSettingSecurityGroup1:
-    Value: !GetAtt VpcSecurityGroupCluster.GroupId
+  SubnetIdPrivate:
+    Value: !Ref VpcSubnet4Private
+    Description: Subnet ID for Network Setting on Databricks Account Console.
+
+  SecurityGroupIdPublic:
+    Value: !Ref VpcSecurityGroupPublic
     Description: SecurityGroup ID for Network Setting on Databricks Account Console.
 
-  NetworkSettingSecurityGroup2:
-    Value: !GetAtt VpcSecurityGroupEndpoint.GroupId
+  # SecurityGroupIdFront:
+  #   Value: !Ref VpcSecurityGroupFront
+  #   Description: SecurityGroup ID for Network Setting on Databricks Account Console.
+
+  SecurityGroupIdCluster:
+    Value: !Ref VpcSecurityGroupCluster
     Description: SecurityGroup ID for Network Setting on Databricks Account Console.
 
-  VPCEndpointScc:
+  SecurityGroupIdEndpoint:
+    Value: !Ref VpcSecurityGroupEndpoint
+    Description: SecurityGroup ID for Network Setting on Databricks Account Console.
+
+  VPCEndpointIdScc:
     Value: !Ref DatabricksSccEndpoint
     Description: Scc Endpoint ID for VPC Endpoint on Databricks Account Console.
 
-  VPCEndpointWorkspace:
-    Value: !Ref DatabricksWorkspaceEndpoint
+  VPCEndpointNameScc:
+    Value: dbx-vpce-databricks-scc
+    Description: Scc Endpoint Name for VPC Endpoint on Databricks Account Console.
+
+  VPCEndpointIdInternal:
+    Value: !Ref DatabricksInternalEndpoint
     Description: Workspace Endpoint ID for VPC Endpoint on Databricks Account Console.
 
-  VPCEndpointFrontend:
+  VPCEndpointNameInternal:
+    Value: dbx-vpce-databricks-internal
+    Description: Workspace Endpoint Name for VPC Endpoint on Databricks Account Console.
+
+  VPCEndpointIdFrontend:
     Value: !Ref DatabricksFrontendEndpoint
     Description: Frontend Endpoint ID for VPC Endpoint on Databricks Account Console.
+
+  VPCEndpointNameFrontend:
+    Value: dbx-vpce-databricks-front
+    Description: Frontend Endpoint Name for VPC Endpoint on Databricks Account Console.

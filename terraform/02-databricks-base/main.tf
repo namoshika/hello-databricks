@@ -42,12 +42,13 @@ provider "databricks" {
 # ----------------------------
 data "terraform_remote_state" "base" {
   backend = "local"
-  config  = { path = "../tfstates/01-base.tfstate" }
+  config  = { path = "../tfstates/01-aws-base.tfstate" }
 }
 locals {
-  aws_s3_bucketname_storage  = data.terraform_remote_state.base.outputs.aws_s3_bucketname_storage
-  aws_iamrole_arn_credential = data.terraform_remote_state.base.outputs.aws_iamrole_arn_credential
-  databricks_metastore_name  = replace("metastore_aws_${var.aws_region}", "-", "_")
+  aws_s3_bucketname_storage        = data.terraform_remote_state.base.outputs.aws_s3_bucketname_storage
+  aws_iamrole_arn_credential_basic = data.terraform_remote_state.base.outputs.aws_iamrole_arn_credential_basic
+  aws_iamrole_arn_credential_cmvpc = data.terraform_remote_state.base.outputs.aws_iamrole_arn_credential_cmvpc
+  databricks_metastore_name        = replace("metastore_aws_${var.aws_region}", "-", "_")
 }
 
 # ----------------------------
@@ -95,10 +96,15 @@ resource "databricks_group_member" "terraform" {
 # ----------------------------
 # Account Scope - Cloud Resource
 # ----------------------------
-resource "databricks_mws_credentials" "base" {
+resource "databricks_mws_credentials" "base_basic" {
   provider         = databricks.mws
-  credentials_name = "dbx-iamrole-base"
-  role_arn         = local.aws_iamrole_arn_credential
+  credentials_name = "dbx-iamrole-base-basic"
+  role_arn         = local.aws_iamrole_arn_credential_basic
+}
+resource "databricks_mws_credentials" "base_cmvpc" {
+  provider         = databricks.mws
+  credentials_name = "dbx-iamrole-base-cmvpc"
+  role_arn         = local.aws_iamrole_arn_credential_cmvpc
 }
 resource "databricks_mws_storage_configurations" "base" {
   provider                   = databricks.mws
@@ -120,8 +126,11 @@ output "databricks_client_secret" {
   value     = databricks_service_principal_secret.terraform.secret
   sensitive = true
 }
-output "databricks_credentials_id" {
-  value = databricks_mws_credentials.base.credentials_id
+output "databricks_credentials_id_basic" {
+  value = databricks_mws_credentials.base_basic.credentials_id
+}
+output "databricks_credentials_id_cmvpc" {
+  value = databricks_mws_credentials.base_cmvpc.credentials_id
 }
 output "databricks_groupname_admin" {
   value = databricks_group.admin.display_name
