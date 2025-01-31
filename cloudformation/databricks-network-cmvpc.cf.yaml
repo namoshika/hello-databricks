@@ -33,8 +33,7 @@ Resources:
       EnableDnsSupport: true
       EnableDnsHostnames: true
       Tags:
-        - { Key: Name, Value: databricks-vpc }
-        - { Key: Service, Value: databricks-common }
+        - { Key: Name, Value: dbx-workspace-vpc }
 
   # ----------------------------------------
   # VPC Subnet 1 Public
@@ -46,8 +45,7 @@ Resources:
       CidrBlock: 10.0.0.0/20
       VpcId: !Ref Vpc
       Tags:
-        - { Key: Name, Value: databricks-subnet1-public }
-        - { Key: Service, Value: databricks-common }
+        - { Key: Name, Value: dbx-workspace-subnet1-public }
 
   VpcSubnet1PublicRouteTable:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -65,8 +63,7 @@ Resources:
       CidrBlock: 10.0.16.0/20
       VpcId: !Ref Vpc
       Tags:
-        - { Key: Name, Value: !Sub "databricks-subnet2-cluster-${DatabricksWorkspaceName}" }
-        - { Key: Service, Value: !Sub "databricks-${DatabricksWorkspaceName}" }
+        - { Key: Name, Value: !Sub "dbx-workspace-subnet2-cluster-${DatabricksWorkspaceName}" }
 
   VpcSubnet2ClusterRouteTable:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -84,8 +81,7 @@ Resources:
       CidrBlock: 10.0.32.0/20
       VpcId: !Ref Vpc
       Tags:
-        - { Key: Name, Value: !Sub "databricks-subnet3-cluster-${DatabricksWorkspaceName}" }
-        - { Key: Service, Value: !Sub "databricks-${DatabricksWorkspaceName}" }
+        - { Key: Name, Value: !Sub "dbx-workspace-subnet3-cluster-${DatabricksWorkspaceName}" }
 
   VpcSubnet3ClusterRouteTable:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -103,8 +99,7 @@ Resources:
       CidrBlock: 10.0.48.0/20
       VpcId: !Ref Vpc
       Tags:
-        - { Key: Name, Value: databricks-subnet4-private }
-        - { Key: Service, Value: databricks-common }
+        - { Key: Name, Value: dbx-workspace-subnet4-private }
 
   # ----------------------------------------
   # VPC Routing
@@ -114,8 +109,7 @@ Resources:
     Properties:
       VpcId: !Ref Vpc
       Tags:
-        - { Key: Name, Value: !Sub "databricks-${DatabricksWorkspaceName}-rtb-public" }
-        - { Key: Service, Value: !Sub "databricks-${DatabricksWorkspaceName}" }
+        - { Key: Name, Value: !Sub "dbx-rtb-public" }
 
   VpcRouteTablePublicEntryInternetGw:
     Type: AWS::EC2::Route
@@ -129,8 +123,7 @@ Resources:
     Properties:
       VpcId: !Ref Vpc
       Tags:
-        - { Key: Name, Value: !Sub "databricks-${DatabricksWorkspaceName}-rtb-cluster" }
-        - { Key: Service, Value: !Sub "databricks-${DatabricksWorkspaceName}" }
+        - { Key: Name, Value: !Sub "dbx-rtb-cluster" }
 
   VpcRouteTableClusterEntryNatGw:
     Type: AWS::EC2::Route
@@ -145,18 +138,16 @@ Resources:
   VpcSecurityGroupPublic:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: !Sub "databricks-${DatabricksWorkspaceName}-sg-public"
+      GroupName: !Sub "dbx-sg-public"
       GroupDescription: databricks frontend
       VpcId: !Ref Vpc
       SecurityGroupIngress:
         - { IpProtocol: tcp, FromPort: 443, ToPort: 443, CidrIp: 0.0.0.0/0 }
-      Tags:
-        - { Key: Service, Value: databricks-common }
 
   VpcSecurityGroupCluster:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: !Sub "databricks-${DatabricksWorkspaceName}-sg-cluster"
+      GroupName: !Sub "dbx-sg-cluster"
       GroupDescription: databricks private nodes
       VpcId: !Ref Vpc
       SecurityGroupEgress:
@@ -165,8 +156,6 @@ Resources:
         - { IpProtocol: tcp, FromPort: 6666, ToPort: 6666, CidrIp: 0.0.0.0/0 }
         - { IpProtocol: tcp, FromPort: 2443, ToPort: 2443, CidrIp: 0.0.0.0/0 }
         - { IpProtocol: tcp, FromPort: 8443, ToPort: 8451, CidrIp: 0.0.0.0/0 }
-      Tags:
-        - { Key: Service, Value: !Sub "databricks-${DatabricksWorkspaceName}" }
 
   VpcSecurityGroupClusterIngress:
     Type: AWS::EC2::SecurityGroupIngress
@@ -185,11 +174,9 @@ Resources:
   VpcSecurityGroupEndpoint:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: !Sub "databricks-${DatabricksWorkspaceName}-sg-endpoint"
+      GroupName: !Sub "dbx-sg-endpoint"
       GroupDescription: databricks private nodes
       VpcId: !Ref Vpc
-      Tags:
-        - { Key: Service, Value: databricks-common }
 
   VpcSecurityGroupEndpointIngress:
     Type: AWS::EC2::SecurityGroupIngress
@@ -214,23 +201,20 @@ Resources:
       SubnetId: !Ref VpcSubnet1Public
       AllocationId: !GetAtt NatGwEip.AllocationId
       Tags:
-        - { Key: Name, Value: databricks-natgw }
-        - { Key: Service, Value: databricks-common }
+        - { Key: Name, Value: dbx-natgw }
   
   NatGwEip:
     Type: AWS::EC2::EIP
     Properties:
       Domain: vpc
       Tags:
-        - { Key: Name, Value: databricks-natgw-eip }
-        - { Key: Service, Value: databricks-common }
+        - { Key: Name, Value: dbx-natgw-eip }
 
   InternetGw:
     Type: AWS::EC2::InternetGateway
     Properties:
       Tags:
-        - { Key: Name, Value: databricks-igw }
-        - { Key: Service, Value: databricks-common }
+        - { Key: Name, Value: dbx-igw }
   
   InternetGwAttach:
     Type: AWS::EC2::VPCGatewayAttachment

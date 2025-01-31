@@ -35,17 +35,17 @@ data "terraform_remote_state" "databricks_base" {
   config  = { path = "../tfstates/02-databricks-base.tfstate" }
 }
 locals {
-  aws_iam_role_arn_input              = data.terraform_remote_state.base.outputs.aws_iam_role_arn_input
-  aws_iam_role_arn_workspace          = data.terraform_remote_state.base.outputs.aws_iam_role_arn_workspace
-  aws_s3_bucketname_input             = data.terraform_remote_state.base.outputs.aws_s3_bucketname_input
-  aws_s3_bucketname_workspace         = data.terraform_remote_state.base.outputs.aws_s3_bucketname_workspace
-  databricks_account_id               = data.terraform_remote_state.databricks_base.outputs.databricks_account_id
-  databricks_client_id                = data.terraform_remote_state.databricks_base.outputs.databricks_client_id
-  databricks_client_secret            = data.terraform_remote_state.databricks_base.outputs.databricks_client_secret
-  databricks_credentials_id           = data.terraform_remote_state.databricks_base.outputs.databricks_credentials_id
-  databricks_groupname_admin          = data.terraform_remote_state.databricks_base.outputs.databricks_groupname_admin
-  databricks_metastore_id             = data.terraform_remote_state.databricks_base.outputs.databricks_metastore_id
-  databricks_storage_configuration_id = data.terraform_remote_state.databricks_base.outputs.databricks_storage_configuration_id
+  aws_iamrole_arn_storage_databricks   = data.terraform_remote_state.base.outputs.aws_iamrole_arn_storage
+  aws_iamrole_arn_storage_external     = data.terraform_remote_state.base.outputs.external_aws_iamrole_arn_storage
+  aws_s3_bucketname_storage_databricks = data.terraform_remote_state.base.outputs.aws_s3_bucketname_storage
+  aws_s3_bucketname_storage_external   = data.terraform_remote_state.base.outputs.external_aws_s3_bucketname_storage
+  databricks_account_id                = data.terraform_remote_state.databricks_base.outputs.databricks_account_id
+  databricks_client_id                 = data.terraform_remote_state.databricks_base.outputs.databricks_client_id
+  databricks_client_secret             = data.terraform_remote_state.databricks_base.outputs.databricks_client_secret
+  databricks_credentials_id            = data.terraform_remote_state.databricks_base.outputs.databricks_credentials_id
+  databricks_groupname_admin           = data.terraform_remote_state.databricks_base.outputs.databricks_groupname_admin
+  databricks_metastore_id              = data.terraform_remote_state.databricks_base.outputs.databricks_metastore_id
+  databricks_storage_configuration_id  = data.terraform_remote_state.databricks_base.outputs.databricks_storage_configuration_id
 }
 
 # ----------------------------
@@ -86,8 +86,8 @@ resource "databricks_group_member" "admin" {
 module "workspace" {
   source                              = "../modules/databricks-workspace"
   aws_region                          = var.aws_region
-  aws_iam_role_arn_workspace          = local.aws_iam_role_arn_workspace
-  aws_s3_bucketname_workspace         = local.aws_s3_bucketname_workspace
+  aws_iamrole_arn_storage             = local.aws_iamrole_arn_storage_databricks
+  aws_s3_bucketname_storage           = local.aws_s3_bucketname_storage_databricks
   databricks_account_id               = local.databricks_account_id
   databricks_client_id                = local.databricks_client_id
   databricks_client_secret            = local.databricks_client_secret
@@ -128,8 +128,8 @@ provider "databricks" {
 module "external_storage" {
   source                           = "../modules/databricks-storage-external"
   depends_on                       = [module.workspace]
-  aws_iam_role_arn_external        = local.aws_iam_role_arn_input
-  aws_s3_bucketname_external       = local.aws_s3_bucketname_input
+  aws_iam_role_arn                 = local.aws_iamrole_arn_storage_external
+  aws_s3_bucketname                = local.aws_s3_bucketname_storage_external
   databricks_principal_owner       = local.databricks_groupname_admin
   databricks_uv_mountpoint_catalog = var.databricks_workspace_name
   databricks_uv_mountpoint_schema  = "default"

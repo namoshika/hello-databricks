@@ -39,7 +39,7 @@ data "terraform_remote_state" "workspace" {
   config  = { path = "../tfstates/03-databricks-workspace-basic.tfstate" }
 }
 locals {
-  aws_s3_bucketname_input   = data.terraform_remote_state.base.outputs.aws_s3_bucketname_input
+  aws_s3_bucketname_storage = data.terraform_remote_state.base.outputs.external_aws_s3_bucketname_storage
   databricks_workspace_url  = data.terraform_remote_state.workspace.outputs.databricks_workspace_url
   databricks_workspace_name = data.terraform_remote_state.workspace.outputs.databricks_workspace_name
 }
@@ -68,7 +68,7 @@ resource "databricks_pipeline" "sample_pipeline" {
   continuous    = false
   development   = true
   serverless    = true
-  configuration = { "DATA_BUCKET_NAME" = local.aws_s3_bucketname_input }
+  configuration = { "DATA_BUCKET_NAME" = local.aws_s3_bucketname_storage }
 
   library {
     notebook { path = "${data.databricks_current_user.me.home}/sample_helloworld/02. DeltaLiveTable" }

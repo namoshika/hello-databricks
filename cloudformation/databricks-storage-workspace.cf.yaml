@@ -10,6 +10,10 @@ Parameters:
     Type: String
     Description: Enter the name of the S3 bucket you wanted manage by Databricks
 
+  IamRoleName:
+    Type: String
+    Default: dbx-iamrole-storage-workspace
+
   IsFirstStep:
     Type: String
     Default: "True"
@@ -63,7 +67,7 @@ Resources:
   IamRoleDatabricksToS3Bucket:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: databricks-iamrole-workspace
+      RoleName: !Ref IamRoleName
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -73,7 +77,7 @@ Resources:
                 - arn:aws:iam::414351767826:role/unity-catalog-prod-UCMasterRole-14S5ZJVKOTYTL
                 # このスタックはデプロイ後に再度スタック更新を行う。生成するIAM ロールの ARN を
                 # 初回デプロイの段階で確定させ、スタック更新の段階で確定した ARN で自己仮定させる
-                - !If [IsFirstStep, !Ref AWS::NoValue, !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/databricks-iamrole-workspace"]
+                - !If [IsFirstStep, !Ref AWS::NoValue, !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${IamRoleName}"]
             Action: sts:AssumeRole
             Condition:
               StringEquals: { sts:ExternalId: !Ref DatabricksAccountId }

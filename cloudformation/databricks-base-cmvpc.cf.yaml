@@ -12,7 +12,7 @@ Resources:
     # オプション2：デフォルトの制限ポリシーを使用した顧客管理VPC
     Type: AWS::IAM::Role
     Properties:
-      RoleName: databricks-iamrole-base-cmvpc
+      RoleName: dbx-iamrole-base-cmvpc
       AssumeRolePolicyDocument: 
         # 当ロールを Databricks 社が持つ Control Plane が使用する事を許可する
         Version: "2012-10-17"
@@ -24,7 +24,7 @@ Resources:
                 StringEquals: { sts:ExternalId: !Ref DatabricksAccountId }
       Policies:
         # 当 AWS アカウントへ Databricks の Control Plane が行える操作を定義
-        - PolicyName: databricks-iampolicy-base-cmvpc
+        - PolicyName: dbx-iampolicy-base-cmvpc
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
@@ -90,7 +90,7 @@ Resources:
                   StringLike:
                     iam:AWSServiceName: spot.amazonaws.com
               - Effect: Allow
-                # Databricks のクラスターが databricks-iamrole-cluster ロールを使うことを許可-cmvpc
+                # Databricks のクラスターが dbx-iamrole-cluster ロールを使うことを許可-cmvpc
                 Resource: !GetAtt IamRoleCluster.Arn
                 Action:
                   - iam:PassRole
@@ -100,7 +100,7 @@ Resources:
     # Reference: https://docs.databricks.com/ja/connect/storage/tutorial-s3-instance-profile.html
     Type: AWS::IAM::Role
     Properties:
-      RoleName: databricks-iamrole-cluster-cmvpc
+      RoleName: dbx-iamrole-cluster-cmvpc
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:

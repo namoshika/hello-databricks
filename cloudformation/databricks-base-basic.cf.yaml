@@ -11,7 +11,7 @@ Resources:
     # Databricks 側から AWS を操作する事を許可
     Type: AWS::IAM::Role
     Properties:
-      RoleName: databricks-iamrole-base
+      RoleName: dbx-iamrole-base
       AssumeRolePolicyDocument: 
         # 当ロールを Databricks 社が持つ Control Plane が使用する事を許可する
         Version: "2012-10-17"
@@ -23,7 +23,7 @@ Resources:
                 StringEquals: { sts:ExternalId: !Ref DatabricksAccountId }
       Policies:
         # 当 AWS アカウントへ Databricks の Control Plane が行える操作を定義
-        - PolicyName: databricks-iampolicy-base
+        - PolicyName: dbx-iampolicy-base
           PolicyDocument:
             Version: "2012-10-17"
             Statement:

@@ -33,17 +33,17 @@ provider "aws" {
 }
 
 # ----------------------------
-# AWS
+# AWS Cfn Databricks Stack
 # ----------------------------
-resource "aws_cloudformation_stack" "base" {
-  name          = "databricks-base-basic"
+resource "aws_cloudformation_stack" "databricks_base" {
+  name          = "dbx-base-basic"
   template_body = file("../../cloudformation/databricks-base-basic.cf.yaml")
   parameters    = { DatabricksAccountId = var.databricks_account_id }
   tags          = { Service = "hello-databricks" }
   capabilities  = ["CAPABILITY_NAMED_IAM"]
 }
-resource "aws_cloudformation_stack" "storage_workspace" {
-  name          = "databricks-storage-workspace"
+resource "aws_cloudformation_stack" "databricks_storage" {
+  name          = "dbx-workspace-storage"
   template_body = file("../../cloudformation/databricks-storage-workspace.cf.yaml")
   parameters = {
     DatabricksAccountId = var.databricks_account_id,
@@ -53,9 +53,13 @@ resource "aws_cloudformation_stack" "storage_workspace" {
   tags         = { Service = "hello-databricks" }
   capabilities = ["CAPABILITY_NAMED_IAM"]
 }
-resource "aws_cloudformation_stack" "storage_input" {
-  name          = "databricks-storage-input"
-  template_body = file("../../cloudformation/databricks-storage-external.cf.yaml")
+
+# ----------------------------
+# AWS Cfn External Stack
+# ----------------------------
+resource "aws_cloudformation_stack" "external_storage" {
+  name          = "dbx-external-storage"
+  template_body = file("../../cloudformation/external-storage.cf.yaml")
   parameters = {
     DatabricksAccountId = var.databricks_account_id,
     S3BucketName        = var.aws_s3_bucketname_input
@@ -65,22 +69,21 @@ resource "aws_cloudformation_stack" "storage_input" {
   capabilities = ["CAPABILITY_NAMED_IAM"]
 }
 
-
 # ----------------------------
-# Output
+# Output databricks
 # ----------------------------
-output "aws_iam_role_arn_credential" {
-  value = aws_cloudformation_stack.base.outputs["IAMRoleForCredential"]
+output "aws_iamrole_arn_credential" {
+  value = aws_cloudformation_stack.databricks_base.outputs["IAMRoleForCredential"]
 }
-output "aws_iam_role_arn_workspace" {
-  value = aws_cloudformation_stack.storage_workspace.outputs["IamRoleArn"]
+output "aws_iamrole_arn_storage" {
+  value = aws_cloudformation_stack.databricks_storage.outputs["IamRoleArn"]
 }
-output "aws_s3_bucketname_workspace" {
-  value = aws_cloudformation_stack.storage_workspace.outputs["S3BucketName"]
+output "aws_s3_bucketname_storage" {
+  value = aws_cloudformation_stack.databricks_storage.outputs["S3BucketName"]
 }
-output "aws_iam_role_arn_input" {
-  value = aws_cloudformation_stack.storage_input.outputs["IamRoleArn"]
+output "external_aws_iam_role_arn_storage" {
+  value = aws_cloudformation_stack.external_storage.outputs["IamRoleArn"]
 }
-output "aws_s3_bucketname_input" {
-  value = aws_cloudformation_stack.storage_input.outputs["S3BucketName"]
+output "external_aws_s3_bucketname_storage" {
+  value = aws_cloudformation_stack.external_storage.outputs["S3BucketName"]
 }

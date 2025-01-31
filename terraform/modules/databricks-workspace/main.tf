@@ -12,8 +12,8 @@ terraform {
 # Variable
 # ----------------------------
 variable "aws_region" { type = string }
-variable "aws_iam_role_arn_workspace" { type = string }
-variable "aws_s3_bucketname_workspace" { type = string }
+variable "aws_iamrole_arn_storage" { type = string }
+variable "aws_s3_bucketname_storage" { type = string }
 variable "databricks_account_id" { type = string }
 variable "databricks_client_id" { type = string }
 variable "databricks_client_secret" {
@@ -64,14 +64,14 @@ resource "databricks_storage_credential" "workspace" {
   name           = databricks_mws_workspaces.sample.workspace_name
   owner          = var.databricks_principal_owner
   isolation_mode = "ISOLATION_MODE_ISOLATED"
-  aws_iam_role { role_arn = var.aws_iam_role_arn_workspace }
+  aws_iam_role { role_arn = var.aws_iamrole_arn_storage }
 }
 resource "databricks_external_location" "workspace" {
   force_destroy   = true
   depends_on      = [databricks_metastore_assignment.base]
   provider        = databricks.workspace
   name            = databricks_mws_workspaces.sample.workspace_name
-  url             = "s3://${var.aws_s3_bucketname_workspace}/unity-catalog/${databricks_mws_workspaces.sample.workspace_id}"
+  url             = "s3://${var.aws_s3_bucketname_storage}/unity-catalog/${databricks_mws_workspaces.sample.workspace_id}"
   owner           = var.databricks_principal_owner
   credential_name = databricks_storage_credential.workspace.id
   isolation_mode  = "ISOLATION_MODE_ISOLATED"
@@ -82,7 +82,7 @@ resource "databricks_catalog" "base" {
   provider       = databricks.workspace
   name           = databricks_mws_workspaces.sample.workspace_name
   owner          = var.databricks_principal_owner
-  storage_root   = "s3://${var.aws_s3_bucketname_workspace}/unity-catalog/${databricks_mws_workspaces.sample.workspace_id}"
+  storage_root   = "s3://${var.aws_s3_bucketname_storage}/unity-catalog/${databricks_mws_workspaces.sample.workspace_id}"
   isolation_mode = "ISOLATED"
 }
 resource "databricks_schema" "base" {

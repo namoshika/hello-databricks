@@ -45,9 +45,9 @@ data "terraform_remote_state" "base" {
   config  = { path = "../tfstates/01-base.tfstate" }
 }
 locals {
-  aws_s3_bucketname_workspace = data.terraform_remote_state.base.outputs.aws_s3_bucketname_workspace
-  aws_iam_role_arn_credential = data.terraform_remote_state.base.outputs.aws_iam_role_arn_credential
-  databricks_metastore_name   = replace("metastore_aws_${var.aws_region}", "-", "_")
+  aws_s3_bucketname_storage  = data.terraform_remote_state.base.outputs.aws_s3_bucketname_storage
+  aws_iamrole_arn_credential = data.terraform_remote_state.base.outputs.aws_iamrole_arn_credential
+  databricks_metastore_name  = replace("metastore_aws_${var.aws_region}", "-", "_")
 }
 
 # ----------------------------
@@ -97,14 +97,14 @@ resource "databricks_group_member" "terraform" {
 # ----------------------------
 resource "databricks_mws_credentials" "base" {
   provider         = databricks.mws
-  credentials_name = "databricks-iamrole-base"
-  role_arn         = local.aws_iam_role_arn_credential
+  credentials_name = "dbx-iamrole-base"
+  role_arn         = local.aws_iamrole_arn_credential
 }
 resource "databricks_mws_storage_configurations" "base" {
   provider                   = databricks.mws
   account_id                 = var.databricks_account_id
-  storage_configuration_name = local.aws_s3_bucketname_workspace
-  bucket_name                = local.aws_s3_bucketname_workspace
+  storage_configuration_name = local.aws_s3_bucketname_storage
+  bucket_name                = local.aws_s3_bucketname_storage
 }
 
 # ----------------------------
