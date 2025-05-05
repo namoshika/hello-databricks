@@ -1,4 +1,6 @@
 {
     "yaml.schemaStore.enable": false,
-    "cfnLint.path": ".venv/bin/cfn-lint"
+    "cfnLint.path": ".venv/bin/cfn-lint",
+    "jupyter.interactiveWindow.cellMarker.codeRegex": "^# COMMAND ----------|^# Databricks notebook source|^(#\\s*%%|#\\s*\\<codecell\\>|#\\s*In\\[\\d*?\\]|#\\s*In\\[ \\])",
+    "jupyter.interactiveWindow.cellMarker.default": "# COMMAND ----------"
 }

@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=../.vscode/bundle_config_schema.json
+# The main pipeline for workspace
+resources:
+  pipelines:
+    sample_pipeline:
+      name: sample-pipeline
+      catalog: ${var.databricks_workspace_name}
+      target: default
+      serverless: true
+      continuous: false
+      libraries:
+        - notebook: { path: ../src/sample_helloworld/02. DeltaLiveTable.sql }
+
+      configuration:
+        DATA_BUCKET_NAME: ${var.aws_s3_bucketname_storage}
