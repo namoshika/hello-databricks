@@ -13,64 +13,36 @@ terraform {
 # ----------------------------
 # Variable
 # ----------------------------
-variable "profile" { type = string }
+variable "aws_iamrole_arn_storage_external" { type = string }
+variable "aws_s3_bucketname_storage_external" { type = string }
+variable "databricks_profile" {
+  type    = string
+  default = null
+}
+variable "databricks_catalog_name" {
+  type    = string
+  default = "workspace"
+}
 
 # ----------------------------
 # Provider
 # ----------------------------
 provider "databricks" {
   alias   = "workspace"
-  host    = local.databricks_workspace_url
-  profile = var.profile
+  profile = var.databricks_profile
 }
 
 # ----------------------------
-# Data
+# Workspace Scope - ワークスペースカタログへ入力バケットをマウント
 # ----------------------------
-data "databricks_current_user" "me" {
-  provider = databricks.workspace
-}
-data "terraform_remote_state" "base" {
-  backend = "local"
-  config  = { path = "../tfstates/01-aws-base.tfstate" }
-}
-data "terraform_remote_state" "workspace" {
-  backend = "local"
-  config  = { path = "../tfstates/03-databricks-workspace.tfstate" }
-}
-locals {
-  aws_s3_bucketname_storage = data.terraform_remote_state.base.outputs.external_aws_s3_bucketname_storage
-  databricks_workspace_url  = data.terraform_remote_state.workspace.outputs.databricks_workspace_url
-  databricks_workspace_name = data.terraform_remote_state.workspace.outputs.databricks_workspace_name
-}
-
-# ----------------------------
-# ワークスペースへ資材を配置
-# ----------------------------
-resource "terraform_data" "run_script" {
-  triggers_replace = [
-    local.databricks_workspace_url
-  ]
-  provisioner "local-exec" {
-    command = "databricks workspace import-dir -p ${var.profile} '../../workspace' '${data.databricks_current_user.me.home}'"
-  }
-}
-
-# ----------------------------
-# Delta Live Table を設定
-# ----------------------------
-resource "databricks_pipeline" "sample_pipeline" {
-  provider    = databricks.workspace
-  depends_on  = [terraform_data.run_script]
-  name        = "sample-pipeline"
-  catalog     = local.databricks_workspace_name
-  target      = "default"
-  continuous  = false
-  development = true
-  # serverless    = true
-  configuration = { "DATA_BUCKET_NAME" = local.aws_s3_bucketname_storage }
-
-  library {
-    notebook { path = "${data.databricks_current_user.me.home}/sample_helloworld/02. DeltaLiveTable" }
+module "external_storage" {
+  source                           = "../modules/databricks-storage-external"
+  aws_iam_role_arn                 = var.aws_iamrole_arn_storage_external
+  aws_s3_bucketname                = var.aws_s3_bucketname_storage_external
+  databricks_principal_owner       = null
+  databricks_uv_mountpoint_catalog = var.databricks_catalog_name
+  databricks_uv_mountpoint_schema  = "default"
+  providers = {
+    databricks.workspace = databricks.workspace
   }
 }
