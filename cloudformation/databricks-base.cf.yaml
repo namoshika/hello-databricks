@@ -3,7 +3,7 @@ Description: "Reference: https://docs.databricks.com/ja/administration-guide/acc
 
 Parameters:
   DatabricksAccountId:
-    Type: String
+    Type: CommaDelimitedList
     Description: Enter the Databricks Account ID that you copied from the Databricks Account Console.
 
 Resources:
@@ -111,6 +111,11 @@ Resources:
                 Condition:
                   StringLike:
                     iam:AWSServiceName: spot.amazonaws.com
+              # クラスターの EC2 へ指定した IAM ロールを付与する事を許可する
+              - Effect: Allow
+                Resource: !GetAtt IamRoleDatabricksCluster.Arn
+                Action:
+                  - iam:PassRole
 
   IamRoleDatabricksToAwsCmvpc:
     # Databricks 側から AWS を操作する事を許可
@@ -195,6 +200,24 @@ Resources:
                   StringLike:
                     iam:AWSServiceName: spot.amazonaws.com
 
+  IamRoleDatabricksCluster:
+    # Databricks クラスターの EC2 へのアタッチ用
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: dbx-iamrole-cluster
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: ec2.amazonaws.com }
+            Action: sts:AssumeRole
+
+  InstanceProfileDatabricksCluster:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: dbx-iamrole-cluster
+      Roles: [!Ref IamRoleDatabricksCluster]
+
 Outputs:
   IAMRoleForCredentialBasic:
     Value: !GetAtt IamRoleDatabricksToAwsBasic.Arn
@@ -203,3 +226,7 @@ Outputs:
   IAMRoleForCredentialCmvpc:
     Value: !GetAtt IamRoleDatabricksToAwsCmvpc.Arn
     Description: IAM Role ARN for Credential Information entry on Databricks Account Console.
+  
+  InstanceProfileDatabricksCluster:
+    Value: !GetAtt InstanceProfileDatabricksCluster.Arn
+    Description: IAM Role ARN for Cluster

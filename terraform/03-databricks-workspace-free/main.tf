@@ -6,7 +6,7 @@ terraform {
     }
   }
   backend "local" {
-    path = "../tfstates/04-databricks-home.tfstate"
+    path = "../tfstates/03-databricks-workspace-free.tfstate"
   }
 }
 

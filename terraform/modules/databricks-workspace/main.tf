@@ -14,6 +14,7 @@ terraform {
 variable "aws_region" { type = string }
 variable "aws_iamrole_arn_storage" { type = string }
 variable "aws_s3_bucketname_storage" { type = string }
+variable "aws_instanceprofile_arn_cluster" { type = string }
 variable "databricks_account_id" { type = string }
 variable "databricks_client_id" { type = string }
 variable "databricks_client_secret" {
@@ -62,6 +63,14 @@ provider "databricks" {
   host          = databricks_mws_workspaces.sample.workspace_url
   client_id     = var.databricks_client_id
   client_secret = var.databricks_client_secret
+}
+
+# ----------------------------
+# Workspace Scope - Setting
+# ----------------------------
+resource "databricks_instance_profile" "base" {
+  provider             = databricks.workspace
+  instance_profile_arn = var.aws_instanceprofile_arn_cluster
 }
 
 # ----------------------------

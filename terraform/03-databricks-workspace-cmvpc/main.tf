@@ -6,7 +6,7 @@ terraform {
     }
   }
   backend "local" {
-    path = "../tfstates/03-databricks-workspace.tfstate"
+    path = "../tfstates/03-databricks-workspace-cmvpc.tfstate"
   }
 }
 
@@ -41,6 +41,7 @@ data "terraform_remote_state" "databricks_network" {
 locals {
   aws_iamrole_arn_storage_databricks    = data.terraform_remote_state.base.outputs.aws_iamrole_arn_storage
   aws_iamrole_arn_storage_external      = data.terraform_remote_state.base.outputs.external_aws_iamrole_arn_storage
+  aws_instanceprofile_arn_cluster       = data.terraform_remote_state.base.outputs.aws_instanceprofile_arn_cluster
   aws_s3_bucketname_storage_databricks  = data.terraform_remote_state.base.outputs.aws_s3_bucketname_storage
   aws_s3_bucketname_storage_external    = data.terraform_remote_state.base.outputs.external_aws_s3_bucketname_storage
   databricks_account_id                 = data.terraform_remote_state.databricks_base.outputs.databricks_account_id
@@ -94,16 +95,17 @@ module "workspace" {
   aws_region                            = var.aws_region
   aws_iamrole_arn_storage               = local.aws_iamrole_arn_storage_databricks
   aws_s3_bucketname_storage             = local.aws_s3_bucketname_storage_databricks
+  aws_instanceprofile_arn_cluster       = local.aws_instanceprofile_arn_cluster
   databricks_account_id                 = local.databricks_account_id
   databricks_client_id                  = local.databricks_client_id
   databricks_client_secret              = local.databricks_client_secret
   databricks_credentials_id             = local.databricks_credentials_id_cmvpc
   databricks_metastore_id               = local.databricks_metastore_id
   databricks_storage_configuration_id   = local.databricks_storage_configuration_id
-  databricks_network_id                 = local.databricks_networks_id
-  databricks_private_access_settings_id = local.databricks_private_access_settings_id
   databricks_principal_owner            = local.databricks_groupname_admin
   databricks_workspace_name             = var.databricks_workspace_name
+  databricks_network_id                 = local.databricks_networks_id
+  databricks_private_access_settings_id = local.databricks_private_access_settings_id
   providers = {
     databricks.mws = databricks.mws
   }

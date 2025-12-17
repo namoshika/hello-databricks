@@ -3,7 +3,7 @@ Description: "Reference: https://docs.databricks.com/ja/connect/unity-catalog/st
 
 Parameters:
   DatabricksAccountId:
-    Type: String
+    Type: CommaDelimitedList
     Description: Enter the Databricks Account ID that you copied from the Databricks Account Console.
 
   S3BucketName:

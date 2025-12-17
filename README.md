@@ -20,8 +20,10 @@ Databricks 学習用の砂場
 ```ini
 # Rename: terraform/01-aws-base/terraform.tfvars.sample
 # -> terraform.tfvars
-external_aws_s3_bucketname_storage = "{入力データ用 S3 BucketName}"
-aws_s3_bucketname_storage = "{ワークスペースカタログ用 S3 BucketName}"
+aws_s3_bucketname_input = "{外部ストレージ用 S3 BucketName}"
+aws_s3_bucketname_workspace = "{ワークスペースカタログ用 S3 BucketName}"
+# アカウントが複数有る場合はカンマ区切りで指定可能
+# (AWS サブスクと Free Edition 両方を使う等)
 databricks_account_id = "{DatabricksのアカウントID}"
 
 # Rename: terraform/02-databricks-base/terraform.tfvars.sample
@@ -63,8 +65,8 @@ terraform -chdir='terraform/02-databricks-base' apply
 # 任意: 顧客管理 VPC を使う場合
 # ----------------------------
 # AWS の設定を行う
-terraform -chdir='terraform/01-aws-network' init
-terraform -chdir='terraform/01-aws-network' apply
+terraform -chdir='terraform/01-aws-network-cmvpc' init
+terraform -chdir='terraform/01-aws-network-cmvpc' apply
 
 # Databricks のアカウントコンソールを設定
 terraform -chdir='terraform/02-databricks-network-cmvpc' init
@@ -85,28 +87,50 @@ terraform -chdir='terraform/03-databricks-workspace-basic' apply
 terraform -chdir='terraform/03-databricks-workspace-cmvpc' init
 terraform -chdir='terraform/03-databricks-workspace-cmvpc' apply
 
-# Databricks のワークスペースへ資材を配置
+# c. Databricks Free Edition を使う場合
 databricks auth login -p w01 --host https://{WorkspaceURL}/
-terraform -chdir='terraform/04-databricks-home' init
-terraform -chdir='terraform/04-databricks-home' apply -var 'profile=w01'
-
-## 4. Launch Kafka
-terraform -chdir='terraform/04-external-kafka' apply
+terraform -chdir='terraform/03-databricks-workspace-free' init
+terraform -chdir='terraform/03-databricks-workspace-free' apply -var 'profile=w01'
 
 ```
 
-## 4. Cleanup
+## 4. VPC Peering
+作成したワークスペース VPC と普段の作業場 VPC をピアリングする。
+
+```ini
+# Rename: terraform/04-aws-post/terraform.tfvars.sample
+# -> terraform.tfvars
+aws_vpcid_dbxworkspace = "{ワークスペースのVPCID}"
+aws_vpcid_external = "{外部VPCのVPCID}"
+aws_rtbid_cluster = "{ワークスペースのクラスター用ルートテーブルID}"
+aws_rtbid_external = "{外部VPCのルートテーブルID}"
+aws_sgid_dbxcluster = "{ワークスペースのクラスター用セキュリティグループID}"
+```
 
 ```sh
-terraform -chdir='terraform/04-external-kafka' destroy
-terraform -chdir='terraform/04-databricks-home' destroy -var 'profile=w01'
+terraform -chdir='terraform/04-aws-post' init
+terraform -chdir='terraform/04-aws-post' apply
+```
+
+## 5. Extra (任意)
+
+```sh
+## Launch Kafka
+terraform -chdir='terraform/05-aws-kafka' apply
+```
+
+## 6. Cleanup
+
+```sh
+terraform -chdir='terraform/05-aws-kafka' destroy
+terraform -chdir='terraform/04-aws-post' destroy
+terraform -chdir='terraform/03-databricks-workspace-free' destroy -var 'profile=w01'
 
 terraform -chdir='terraform/03-databricks-workspace-basic' destroy
 terraform -chdir='terraform/03-databricks-workspace-cmvpc' destroy
 
 terraform -chdir='terraform/02-databricks-network-cmvpc' destroy
 terraform -chdir='terraform/02-databricks-base' destroy
-terraform -chdir='terraform/01-aws-network' destroy
+terraform -chdir='terraform/01-aws-network-cmvpc' destroy
 terraform -chdir='terraform/01-aws-base' destroy
-
 ```

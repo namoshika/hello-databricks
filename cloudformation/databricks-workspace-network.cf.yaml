@@ -57,10 +57,7 @@ Resources:
       CidrBlock: 10.0.16.0/20
       VpcId: !Ref Vpc
       Tags:
-        - {
-            Key: Name,
-            Value: !Sub "dbx-subnet-workspace-a-cluster",
-          }
+        - { Key: Name, Value: dbx-subnet-workspace-a-cluster }
 
   VpcSubnet2ClusterRouteTable:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -78,10 +75,7 @@ Resources:
       CidrBlock: 10.0.32.0/20
       VpcId: !Ref Vpc
       Tags:
-        - {
-            Key: Name,
-            Value: !Sub "dbx-subnet-workspace-b-cluster",
-          }
+        - { Key: Name, Value: dbx-subnet-workspace-b-cluster }
 
   VpcSubnet3ClusterRouteTable:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -138,7 +132,7 @@ Resources:
   VpcSecurityGroupPublic:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: "dbx-sg-public"
+      GroupName: dbx-sg-public
       GroupDescription: databricks public
       VpcId: !Ref Vpc
       SecurityGroupIngress:
@@ -146,21 +140,10 @@ Resources:
       Tags:
         - { Key: Name, Value: dbx-sg-public }
 
-  VpcSecurityGroupFront:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupName: "dbx-sg-front"
-      GroupDescription: databricks frontend
-      VpcId: !Ref Vpc
-      SecurityGroupIngress:
-        - { IpProtocol: tcp, FromPort: 443, ToPort: 443, CidrIp: 0.0.0.0/0 }
-      Tags:
-        - { Key: Name, Value: dbx-sg-front }
-
   VpcSecurityGroupCluster:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: "dbx-sg-cluster"
+      GroupName: dbx-sg-cluster
       GroupDescription: databricks private nodes
       VpcId: !Ref Vpc
       SecurityGroupEgress:
@@ -189,7 +172,7 @@ Resources:
   VpcSecurityGroupEndpoint:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: "dbx-sg-endpoint"
+      GroupName: dbx-sg-endpoint
       GroupDescription: databricks private nodes
       VpcId: !Ref Vpc
       SecurityGroupIngress:
@@ -204,9 +187,6 @@ Resources:
         - IpProtocol: tcp
           FromPort: 2443
           ToPort: 2443
-          SourceSecurityGroupId: !Ref VpcSecurityGroupCluster
-        # ドキュメント的にクラスターからエンドポイント向けには不要。ここでは Kafka Cluster 用に作成
-        - IpProtocol: -1
           SourceSecurityGroupId: !Ref VpcSecurityGroupCluster
       SecurityGroupEgress:
         - IpProtocol: tcp
@@ -309,18 +289,6 @@ Resources:
   # Control Plane PrivateLink
   # Reference: https://docs.databricks.com/ja/security/network/classic/privatelink.html
   # ----------------------------------------
-  DatabricksFrontendEndpoint:
-    Type: AWS::EC2::VPCEndpoint
-    Properties:
-      ServiceName: !Ref DatabricksRestEndpointServiceName
-      VpcEndpointType: Interface
-      VpcId: !Ref Vpc
-      SubnetIds: [!Ref VpcSubnet1Public]
-      SecurityGroupIds: [!Ref VpcSecurityGroupFront]
-      PrivateDnsEnabled: false
-      Tags:
-        - { Key: Name, Value: dbx-vpce-databricks-front }
-
   DatabricksSccEndpoint:
     Type: AWS::EC2::VPCEndpoint
     Properties:
@@ -354,10 +322,6 @@ Outputs:
     Value: dbx-workspace-vpc
     Description: VPC Name for Network Setting on Databricks Account Console
 
-  SubnetIdPublic:
-    Value: !Ref VpcSubnet1Public
-    Description: Subnet ID for Network Setting on Databricks Account Console.
-
   SubnetIdClusterA:
     Value: !Ref VpcSubnet2Cluster
     Description: Subnet ID for Network Setting on Databricks Account Console.
@@ -366,24 +330,8 @@ Outputs:
     Value: !Ref VpcSubnet3Cluster
     Description: Subnet ID for Network Setting on Databricks Account Console.
 
-  SubnetIdPrivate:
-    Value: !Ref VpcSubnet4Private
-    Description: Subnet ID for Network Setting on Databricks Account Console.
-
-  SecurityGroupIdPublic:
-    Value: !Ref VpcSecurityGroupPublic
-    Description: SecurityGroup ID for Network Setting on Databricks Account Console.
-
-  # SecurityGroupIdFront:
-  #   Value: !Ref VpcSecurityGroupFront
-  #   Description: SecurityGroup ID for Network Setting on Databricks Account Console.
-
   SecurityGroupIdCluster:
     Value: !Ref VpcSecurityGroupCluster
-    Description: SecurityGroup ID for Network Setting on Databricks Account Console.
-
-  SecurityGroupIdEndpoint:
-    Value: !Ref VpcSecurityGroupEndpoint
     Description: SecurityGroup ID for Network Setting on Databricks Account Console.
 
   VPCEndpointIdScc:
@@ -401,11 +349,3 @@ Outputs:
   VPCEndpointNameInternal:
     Value: dbx-vpce-databricks-internal
     Description: Workspace Endpoint Name for VPC Endpoint on Databricks Account Console.
-
-  VPCEndpointIdFrontend:
-    Value: !Ref DatabricksFrontendEndpoint
-    Description: Frontend Endpoint ID for VPC Endpoint on Databricks Account Console.
-
-  VPCEndpointNameFrontend:
-    Value: dbx-vpce-databricks-front
-    Description: Frontend Endpoint Name for VPC Endpoint on Databricks Account Console.

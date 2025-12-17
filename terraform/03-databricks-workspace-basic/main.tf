@@ -6,7 +6,7 @@ terraform {
     }
   }
   backend "local" {
-    path = "../tfstates/03-databricks-workspace.tfstate"
+    path = "../tfstates/03-databricks-workspace-basic.tfstate"
   }
 }
 
@@ -37,6 +37,7 @@ data "terraform_remote_state" "databricks_base" {
 locals {
   aws_iamrole_arn_storage_databricks   = data.terraform_remote_state.base.outputs.aws_iamrole_arn_storage
   aws_iamrole_arn_storage_external     = data.terraform_remote_state.base.outputs.external_aws_iamrole_arn_storage
+  aws_instanceprofile_arn_cluster      = data.terraform_remote_state.base.outputs.aws_instanceprofile_arn_cluster
   aws_s3_bucketname_storage_databricks = data.terraform_remote_state.base.outputs.aws_s3_bucketname_storage
   aws_s3_bucketname_storage_external   = data.terraform_remote_state.base.outputs.external_aws_s3_bucketname_storage
   databricks_account_id                = data.terraform_remote_state.databricks_base.outputs.databricks_account_id
@@ -88,6 +89,7 @@ module "workspace" {
   aws_region                          = var.aws_region
   aws_iamrole_arn_storage             = local.aws_iamrole_arn_storage_databricks
   aws_s3_bucketname_storage           = local.aws_s3_bucketname_storage_databricks
+  aws_instanceprofile_arn_cluster     = local.aws_instanceprofile_arn_cluster
   databricks_account_id               = local.databricks_account_id
   databricks_client_id                = local.databricks_client_id
   databricks_client_secret            = local.databricks_client_secret

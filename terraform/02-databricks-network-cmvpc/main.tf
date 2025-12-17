@@ -42,7 +42,7 @@ data "terraform_remote_state" "base" {
 }
 data "terraform_remote_state" "network" {
   backend = "local"
-  config  = { path = "../tfstates/01-aws-network.tfstate" }
+  config  = { path = "../tfstates/01-aws-network-cmvpc.tfstate" }
 }
 locals {
   aws_vpc_id                    = data.terraform_remote_state.network.outputs.aws_vpc_id
@@ -50,7 +50,6 @@ locals {
   aws_subnet_id_cluster_a       = data.terraform_remote_state.network.outputs.aws_subnet_id_cluster_a
   aws_subnet_id_cluster_b       = data.terraform_remote_state.network.outputs.aws_subnet_id_cluster_b
   aws_securitygroup_id_cluster  = data.terraform_remote_state.network.outputs.aws_securitygroup_id_cluster
-  aws_securitygroup_id_endpoint = data.terraform_remote_state.network.outputs.aws_securitygroup_id_endpoint
   aws_endpoint_id_scc           = data.terraform_remote_state.network.outputs.aws_endpoint_id_scc
   aws_endpoint_name_scc         = data.terraform_remote_state.network.outputs.aws_endpoint_name_scc
   aws_endpoint_id_internal      = data.terraform_remote_state.network.outputs.aws_endpoint_id_internal
