@@ -1,11 +1,11 @@
-# yaml-language-server: $schema=../.vscode/bundle_config_schema.json
-# The main pipeline for workspace
+# This is a Databricks asset bundle definition for sample_agent.
+# See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
 resources:
   pipelines:
     sample_pipeline:
       name: sample-pipeline
-      catalog: ${var.databricks_workspace_name}
-      target: default
+      catalog: ${var.catalog}
+      schema: ${var.schema}
       serverless: true
       continuous: false
       libraries:

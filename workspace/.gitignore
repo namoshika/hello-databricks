@@ -1,5 +1,1 @@
-__pycache__/
-/.venv/
-/.databricks/
-/databricks.dev.yml
-.coverage
+/databricks_*.yml
