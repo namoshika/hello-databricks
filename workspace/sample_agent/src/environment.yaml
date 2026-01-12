@@ -1,0 +1,7 @@
+environment_version: "4"
+dependencies:
+  - langchain[community]
+  - langchain-google-genai
+  - databricks_langchain
+  - databricks-agents
+  - mlflow
