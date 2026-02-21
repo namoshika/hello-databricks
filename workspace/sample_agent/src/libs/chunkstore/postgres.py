@@ -1,6 +1,6 @@
 from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores import VectorStore
-from langchain_postgres import PGEngine, PGVectorStore, Column
+from langchain_postgres import PGEngine, PGVectorStore, Column  # pyright: ignore[reportMissingImports]
 from .. import absclass
 
 

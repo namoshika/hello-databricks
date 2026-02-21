@@ -2632,6 +2632,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pyspark"
+version = "4.1.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "py4j" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/19/bf/58ee13add151469c25825b7125bbf62c3bdcec05eec4d458fcb5c5516066/pyspark-4.1.1.tar.gz", hash = "sha256:77f78984aa84fbe865c717dd37b49913b4e5c97d76ef6824f932f1aefa6621ec", size = 455359625, upload-time = "2026-01-09T09:38:38.28Z" }
+
+[[package]]
 name = "pytest"
 version = "9.0.2"
 source = { registry = "https://pypi.org/simple" }
@@ -2975,6 +2984,7 @@ dev = [
     { name = "databricks-connect" },
     { name = "databricks-dlt" },
     { name = "ipykernel" },
+    { name = "pyspark" },
     { name = "pytest" },
 ]
 
@@ -2991,6 +3001,7 @@ dev = [
     { name = "databricks-connect", specifier = ">=15.4,<15.5" },
     { name = "databricks-dlt" },
     { name = "ipykernel", specifier = ">=7.1.0" },
+    { name = "pyspark", specifier = ">=4.1.1" },
     { name = "pytest" },
 ]
 
