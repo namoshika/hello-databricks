@@ -1,0 +1,7 @@
+CREATE STREAMING TABLE tenki_silver (
+  CONSTRAINT cons_ymd_is_notnull EXPECT (ymd IS NOT NULL) ON VIOLATION DROP ROW,
+  CONSTRAINT cons_area1_is_notnull EXPECT (area_1 IS NOT NULL) ON VIOLATION DROP ROW,
+  CONSTRAINT cons_area2_is_notnull EXPECT (area_2 IS NOT NULL) ON VIOLATION DROP ROW
+)
+AS
+SELECT * FROM STREAM tenki_bronze;

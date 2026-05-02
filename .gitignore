@@ -40,4 +40,5 @@ terraform.rc
 # End of https://www.toptal.com/developers/gitignore/api/terraform
 
 poetry.lock
-/terraform/tfstates
+/data/
+/terraform/tfstates/

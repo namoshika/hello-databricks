@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=../.vscode/databricks-asset-bundles.json
+# This is a Databricks asset bundle definition for sample_pipeline.
+# See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
+resources:
+  pipelines:
+    pipeline_sample:
+      name: pl-sample-pipeline
+      catalog: ${var.catalog}
+      schema: ${var.schema}
+      serverless: true
+      root_path: "../src/"
+      libraries:
+        - glob:
+            include: ../src/transformations/**
+      configuration:
+        DATA_BUCKET_NAME: ${var.aws_s3_bucketname_storage}

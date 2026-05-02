@@ -1,0 +1,13 @@
+[project]
+name = "sample_data"
+version = "0.1.0"
+description = "Databricks Workspace"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+vsc = [
+    "databricks-connect>=16.1.4",
+    "ipykernel>=6.29.5",
+]

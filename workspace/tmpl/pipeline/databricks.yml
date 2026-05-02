@@ -1,0 +1,50 @@
+# This is a Databricks asset bundle definition for sample_pipeline.
+# See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
+# yaml-language-server: $schema=.vscode/databricks-asset-bundles.json
+bundle:
+  name: sample_pipeline
+
+include:
+  - resources/*.yml
+
+# Variable declarations. These variables are assigned in the dev/prod targets below.
+variables:
+  aws_s3_bucketname_storage:
+    default: AWS_S3_BUCKETNAME
+    description: The external storage bucket name
+  catalog:
+    default: workspace
+    description: The catalog to use
+  schema:
+    description: The schema to use
+
+sync:
+  include:
+    - src/
+  exclude:
+    - .gitignore
+    - .claude/
+    - .vscode/
+targets:
+  dev:
+    # The default target uses 'mode: development' to create a development copy.
+    # - Deployed resources get prefixed with '[dev my_user_name]'
+    # - Any job schedules and triggers are paused by default.
+    # See also https://docs.databricks.com/dev-tools/bundles/deployment-modes.html.
+    mode: development
+    default: true
+    variables:
+      schema: usr_${workspace.current_user.short_name}
+    workspace:
+      host: ${DATABRICKS_WORKSPACE_URL}
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}
+  prod:
+    mode: production
+    variables:
+      schema: default
+    workspace:
+      host: ${DATABRICKS_WORKSPACE_URL}
+      root_path: /Workspace/Shared/.bundle/${bundle.name}
+    permissions:
+      - group_name: users
+        level: CAN_MANAGE
