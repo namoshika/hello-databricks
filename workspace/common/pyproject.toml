@@ -1,0 +1,16 @@
+[project]
+name = "common"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12.3"
+dependencies = []
+
+[project.optional-dependencies]
+vsc = [
+    "pytest>=9.0.3",
+]
+
+[tool.pytest.ini_options]
+pythonpath = "src"
+testpaths = ["tests",]

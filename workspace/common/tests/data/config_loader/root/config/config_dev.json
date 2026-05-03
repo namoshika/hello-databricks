@@ -1,0 +1,5 @@
+{
+  "environment": "dev",
+  "catalog": "main",
+  "schema": "default"
+}

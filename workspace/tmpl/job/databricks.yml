@@ -1,0 +1,27 @@
+bundle:
+  name: sample_job
+
+resources:
+  jobs:
+    sample_job:
+      name: "${bundle.target}-job-sample"
+      tasks:
+        - task_key: run_sample_notebook
+          notebook_task:
+            notebook_path: ./notebooks/sample.ipynb
+            base_parameters:
+              config_file: config_prd.json
+      schedule:
+        quartz_cron_expression: "0 0 9 * * ?"
+        timezone_id: "Asia/Tokyo"
+        pause_status: PAUSED
+
+targets:
+  dev:
+    mode: development
+    default: true
+    
+  prd:
+    mode: production
+    workspace:
+      root_path: /Workspace/Shared/.bundle/${bundle.name}

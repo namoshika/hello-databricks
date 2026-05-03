@@ -1,0 +1,5 @@
+{
+  "environment": "prd",
+  "catalog": "main",
+  "schema": "default"
+}
