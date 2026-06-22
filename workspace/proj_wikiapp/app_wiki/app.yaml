@@ -1,0 +1,10 @@
+command: ["/bin/sh", "-f", "launch.sh"]
+env:
+  - name: DB_USER
+    value: "wikiuser"
+  - name: DB_PASS
+    valueFrom: "wikiuser_password"
+  - name: DB_NAME
+    value: "databricks_postgres"
+  - name: NODE_ENV
+    value: "production"

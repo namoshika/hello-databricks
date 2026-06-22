@@ -1,0 +1,46 @@
+bundle:
+  name: proj_dashboard
+
+include:
+  - "*.yml"
+  - "*.yaml"
+
+variables:
+  project_env:
+    default: dev
+
+resources:
+  postgres_projects:
+    wikidb:
+      project_id: dashboard-wikidb-${var.project_env}
+      display_name: 'dashboard_wikidb_${var.project_env}'
+      pg_version: 17
+      enable_pg_native_login: true
+
+  apps:
+    wiki_app:
+      name: dashboard-wiki-${var.project_env}
+      description: "Wiki.js on Databricks Apps with Lakebase backend"
+      source_code_path: ./app_wiki
+      resources:
+        - name: wikiuser_password
+          secret:
+            scope: dashboard_wiki
+            key: wikiuser_password
+            permission: READ
+        - name: postgres
+          postgres:
+            branch: ${resources.postgres_projects.wikidb.id}/branches/production
+            database: ${resources.postgres_projects.wikidb.id}/branches/production/databases/databricks-postgres
+            permission: CAN_CONNECT_AND_CREATE
+      permissions:
+        - level: CAN_MANAGE
+          user_name: ${workspace.current_user.userName}
+
+targets:
+  dev:
+    mode: development
+    default: true
+  
+  prod:
+    mode: production
