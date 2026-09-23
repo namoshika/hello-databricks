@@ -6,7 +6,7 @@ terraform {
     }
   }
   backend "local" {
-    path = "../tfstates/01-aws-network-cmvpc.tfstate"
+    path = "../tfstates/01-aws-regional-cmvpc.tfstate"
   }
 }
 
@@ -17,6 +17,10 @@ variable "aws_profile" {
   type    = string
   default = "default"
 }
+variable "aws_region" {
+  type    = string
+  default = "ap-northeast-1"
+}
 variable "aws_az_a_dbx" {
   type    = string
   default = "ap-northeast-1a"
@@ -25,15 +29,13 @@ variable "aws_az_b_dbx" {
   type    = string
   default = "ap-northeast-1c"
 }
-variable "aws_vpcid_external" {
-  type = string
-}
 
 # ----------------------------
 # Provider
 # ----------------------------
 provider "aws" {
   profile = var.aws_profile
+  region  = var.aws_region
 }
 
 # ----------------------------

@@ -6,23 +6,19 @@ terraform {
     }
   }
   backend "local" {
-    path = "../tfstates/02-databricks-base.tfstate"
+    path = "../tfstates/02-databricks-global.tfstate"
   }
 }
 
 # ----------------------------
 # Variable
 # ----------------------------
-variable "aws_region" {
-  type    = string
-  default = "ap-northeast-1"
-}
-variable "databricks_profile" {
+variable "dbx_profile" {
   type    = string
   default = "DEFAULT"
 }
-variable "databricks_account_id" { type = string }
-variable "databricks_groupname_admin" {
+variable "dbx_account_id" { type = string }
+variable "dbx_groupname_admin" {
   type    = string
   default = "admin"
 }
@@ -33,35 +29,20 @@ variable "databricks_groupname_admin" {
 provider "databricks" {
   alias      = "mws"
   host       = "https://accounts.cloud.databricks.com"
-  account_id = var.databricks_account_id
-  profile    = var.databricks_profile
+  account_id = var.dbx_account_id
+  profile    = var.dbx_profile
 }
 
 # ----------------------------
 # Data
 # ----------------------------
-data "terraform_remote_state" "base" {
+data "terraform_remote_state" "aws_global" {
   backend = "local"
-  config  = { path = "../tfstates/01-aws-base.tfstate" }
+  config  = { path = "../tfstates/01-aws-global.tfstate" }
 }
 locals {
-  aws_s3_bucketname_storage        = data.terraform_remote_state.base.outputs.aws_s3_bucketname_storage
-  aws_iamrole_arn_credential_basic = data.terraform_remote_state.base.outputs.aws_iamrole_arn_credential_basic
-  aws_iamrole_arn_credential_cmvpc = data.terraform_remote_state.base.outputs.aws_iamrole_arn_credential_cmvpc
-  databricks_metastore_name        = replace("metastore_aws_${var.aws_region}", "-", "_")
-}
-
-# ----------------------------
-# Account Scope - Catalog
-# ----------------------------
-resource "databricks_metastore" "base" {
-  provider = databricks.mws
-  name     = local.databricks_metastore_name
-  # 管理者を指定しないメタストアのオーナーとして System user を指定する
-  # システムユーザとして System user (表示名: System user) が既定で作成されている
-  owner         = "System user"
-  region        = var.aws_region
-  force_destroy = true
+  aws_iamrole_arn_credential_basic = data.terraform_remote_state.aws_global.outputs.aws_iamrole_arn_credential_basic
+  aws_iamrole_arn_credential_cmvpc = data.terraform_remote_state.aws_global.outputs.aws_iamrole_arn_credential_cmvpc
 }
 
 # ----------------------------
@@ -84,7 +65,7 @@ resource "databricks_service_principal_secret" "terraform" {
 }
 resource "databricks_group" "admin" {
   provider     = databricks.mws
-  display_name = var.databricks_groupname_admin
+  display_name = var.dbx_groupname_admin
   force        = true
 }
 resource "databricks_group_member" "terraform" {
@@ -106,18 +87,12 @@ resource "databricks_mws_credentials" "base_cmvpc" {
   credentials_name = "dbx-iamrole-base-cmvpc"
   role_arn         = local.aws_iamrole_arn_credential_cmvpc
 }
-resource "databricks_mws_storage_configurations" "base" {
-  provider                   = databricks.mws
-  account_id                 = var.databricks_account_id
-  storage_configuration_name = local.aws_s3_bucketname_storage
-  bucket_name                = local.aws_s3_bucketname_storage
-}
 
 # ----------------------------
 # Output
 # ----------------------------
 output "databricks_account_id" {
-  value = var.databricks_account_id
+  value = var.dbx_account_id
 }
 output "databricks_client_id" {
   value = databricks_service_principal.terraform.application_id
@@ -134,10 +109,4 @@ output "databricks_credentials_id_cmvpc" {
 }
 output "databricks_groupname_admin" {
   value = databricks_group.admin.display_name
-}
-output "databricks_metastore_id" {
-  value = databricks_metastore.base.metastore_id
-}
-output "databricks_storage_configuration_id" {
-  value = databricks_mws_storage_configurations.base.storage_configuration_id
 }

@@ -1,3 +1,0 @@
-aws_region = "..."
-databricks_usermail_admin = "..."
-databricks_workspace_name = "sample-workspace"

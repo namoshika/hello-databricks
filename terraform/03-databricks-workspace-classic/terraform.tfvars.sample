@@ -1,0 +1,3 @@
+aws_region = "..."
+dbx_usermail_admin = "..."
+dbx_workspace_name = "sample-workspace-classic"

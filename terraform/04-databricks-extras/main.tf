@@ -13,7 +13,7 @@ terraform {
 # ----------------------------
 # Variable
 # ----------------------------
-variable "databricks_profile" {
+variable "dbx_profile" {
   type    = string
   default = "DEFAULT"
 }
@@ -22,7 +22,7 @@ variable "databricks_profile" {
 # Provider
 # ----------------------------
 provider "databricks" {
-  profile = var.databricks_profile
+  profile = var.dbx_profile
 }
 
 # ----------------------------

@@ -6,7 +6,7 @@ terraform {
     }
   }
   backend "local" {
-    path = "../tfstates/03-databricks-workspace-basic.tfstate"
+    path = "../tfstates/03-databricks-workspace-classic.tfstate"
   }
 }
 
@@ -17,36 +17,42 @@ variable "aws_region" {
   type    = string
   default = "ap-northeast-1"
 }
-variable "databricks_workspace_name" {
+variable "dbx_workspace_name" {
   type    = string
-  default = "sample-workspace"
+  default = "sample-workspace-classic"
 }
-variable "databricks_usermail_admin" { type = string }
+variable "dbx_usermail_admin" { type = string }
 
 # ----------------------------
 # Data (1/2)
 # ----------------------------
-data "terraform_remote_state" "base" {
+data "terraform_remote_state" "aws_global" {
   backend = "local"
-  config  = { path = "../tfstates/01-aws-base.tfstate" }
+  config  = { path = "../tfstates/01-aws-global.tfstate" }
 }
-data "terraform_remote_state" "databricks_base" {
+data "terraform_remote_state" "aws_regional" {
   backend = "local"
-  config  = { path = "../tfstates/02-databricks-base.tfstate" }
+  config  = { path = "../tfstates/01-aws-regional.tfstate" }
+}
+data "terraform_remote_state" "databricks_global" {
+  backend = "local"
+  config  = { path = "../tfstates/02-databricks-global.tfstate" }
+}
+data "terraform_remote_state" "databricks_regional" {
+  backend = "local"
+  config  = { path = "../tfstates/02-databricks-regional.tfstate" }
 }
 locals {
-  aws_iamrole_arn_storage_databricks   = data.terraform_remote_state.base.outputs.aws_iamrole_arn_storage
-  aws_iamrole_arn_storage_external     = data.terraform_remote_state.base.outputs.external_aws_iamrole_arn_storage
-  aws_instanceprofile_arn_cluster      = data.terraform_remote_state.base.outputs.aws_instanceprofile_arn_cluster
-  aws_s3_bucketname_storage_databricks = data.terraform_remote_state.base.outputs.aws_s3_bucketname_storage
-  aws_s3_bucketname_storage_external   = data.terraform_remote_state.base.outputs.external_aws_s3_bucketname_storage
-  databricks_account_id                = data.terraform_remote_state.databricks_base.outputs.databricks_account_id
-  databricks_client_id                 = data.terraform_remote_state.databricks_base.outputs.databricks_client_id
-  databricks_client_secret             = data.terraform_remote_state.databricks_base.outputs.databricks_client_secret
-  databricks_credentials_id_basic      = data.terraform_remote_state.databricks_base.outputs.databricks_credentials_id_basic
-  databricks_groupname_admin           = data.terraform_remote_state.databricks_base.outputs.databricks_groupname_admin
-  databricks_metastore_id              = data.terraform_remote_state.databricks_base.outputs.databricks_metastore_id
-  databricks_storage_configuration_id  = data.terraform_remote_state.databricks_base.outputs.databricks_storage_configuration_id
+  aws_iamrole_arn_storage_databricks   = data.terraform_remote_state.aws_regional.outputs.aws_iamrole_arn_storage
+  aws_instanceprofile_arn_cluster      = data.terraform_remote_state.aws_global.outputs.aws_instanceprofile_arn_cluster
+  aws_s3_bucketname_storage_databricks = data.terraform_remote_state.aws_regional.outputs.aws_s3_bucketname_storage
+  databricks_account_id                = data.terraform_remote_state.databricks_global.outputs.databricks_account_id
+  databricks_client_id                 = data.terraform_remote_state.databricks_global.outputs.databricks_client_id
+  databricks_client_secret             = data.terraform_remote_state.databricks_global.outputs.databricks_client_secret
+  databricks_credentials_id_basic      = data.terraform_remote_state.databricks_global.outputs.databricks_credentials_id_basic
+  databricks_groupname_admin           = data.terraform_remote_state.databricks_global.outputs.databricks_groupname_admin
+  databricks_metastore_id              = data.terraform_remote_state.databricks_regional.outputs.databricks_metastore_id
+  databricks_storage_configuration_id  = data.terraform_remote_state.databricks_regional.outputs.databricks_storage_configuration_id
 }
 
 # ----------------------------
@@ -65,7 +71,7 @@ provider "databricks" {
 # ----------------------------
 data "databricks_user" "admin" {
   provider  = databricks.mws
-  user_name = var.databricks_usermail_admin
+  user_name = var.dbx_usermail_admin
 }
 data "databricks_group" "admin" {
   provider     = databricks.mws
@@ -97,7 +103,7 @@ module "workspace" {
   databricks_metastore_id             = local.databricks_metastore_id
   databricks_storage_configuration_id = local.databricks_storage_configuration_id
   databricks_principal_owner          = local.databricks_groupname_admin
-  databricks_workspace_name           = var.databricks_workspace_name
+  databricks_workspace_name           = var.dbx_workspace_name
   providers = {
     databricks.mws = databricks.mws
   }
@@ -115,36 +121,10 @@ resource "databricks_mws_permission_assignment" "admin" {
 }
 
 # ----------------------------
-# Workspace Scope - Provider
-# ----------------------------
-provider "databricks" {
-  alias         = "workspace"
-  host          = module.workspace.databricks_workspace_url
-  client_id     = local.databricks_client_id
-  client_secret = local.databricks_client_secret
-}
-
-# ----------------------------
-# Workspace Scope - ワークスペースカタログへ入力バケットをマウント
-# ----------------------------
-module "external_storage" {
-  source                           = "../modules/databricks-storage-external"
-  depends_on                       = [module.workspace]
-  aws_iam_role_arn                 = local.aws_iamrole_arn_storage_external
-  aws_s3_bucketname                = local.aws_s3_bucketname_storage_external
-  databricks_principal_owner       = local.databricks_groupname_admin
-  databricks_uv_mountpoint_catalog = var.databricks_workspace_name
-  databricks_uv_mountpoint_schema  = "default"
-  providers = {
-    databricks.workspace = databricks.workspace
-  }
-}
-
-# ----------------------------
 # Output
 # ----------------------------
 output "databricks_workspace_name" {
-  value = var.databricks_workspace_name
+  value = var.dbx_workspace_name
 }
 output "databricks_workspace_url" {
   value = module.workspace.databricks_workspace_url

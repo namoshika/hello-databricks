@@ -18,24 +18,43 @@ Databricks 学習用の砂場
 **パラメーターファイルを編集**
 
 ```ini
-# Rename: terraform/01-aws-base/terraform.tfvars.sample
+# Rename: terraform/01-aws-global/terraform.tfvars.sample
 # -> terraform.tfvars
+aws_profile = "{AWS CLI のプロファイル名}"
 aws_s3_bucketname_input = "{外部ストレージ用 S3 BucketName}"
-aws_s3_bucketname_workspace = "{ワークスペースカタログ用 S3 BucketName}"
 # アカウントが複数有る場合はカンマ区切りで指定可能
 # (AWS サブスクと Free Edition 両方を使う等)
-databricks_account_id = "{DatabricksのアカウントID}"
+dbx_account_id = "{DatabricksのアカウントID}"
 
-# Rename: terraform/02-databricks-base/terraform.tfvars.sample
+# Rename: terraform/01-aws-regional/terraform.tfvars.sample
+# -> terraform.tfvars
+aws_profile = "{AWS CLI のプロファイル名}"
+aws_region = "{デプロイ先 AWS リージョン}"
+aws_s3_bucketname_workspace = "{ワークスペースカタログ用 S3 BucketName}"
+dbx_account_id = "{DatabricksのアカウントID}"
+
+# Rename: terraform/02-databricks-global/terraform.tfvars.sample
+# -> terraform.tfvars
+dbx_account_id = "{DatabricksのアカウントID}"
+dbx_profile = "{Databricks CLI のプロファイル名}"
+
+# Rename: terraform/02-databricks-regional/terraform.tfvars.sample
 # -> terraform.tfvars
 aws_region = "{デプロイ先 AWS リージョン}"
-databricks_account_id = "{DatabricksのアカウントID}"
+dbx_account_id = "{DatabricksのアカウントID}"
+dbx_profile = "{Databricks CLI のプロファイル名}"
 
-# Rename: terraform/03-databricks-workspace-basic/terraform.tfvars.sample
+# Rename: terraform/03-databricks-workspace-classic/terraform.tfvars.sample
 # -> terraform.tfvars
 aws_region = "{デプロイ先 AWS リージョン}"
-databricks_usermail_admin = "{管理者アカウントのメールアドレス}"
-databricks_workspace_name = "{ワークスペースの名前}"
+dbx_usermail_admin = "{管理者アカウントのメールアドレス}"
+dbx_workspace_name = "{ワークスペースの名前}"
+
+# Rename: terraform/03-databricks-workspace/terraform.tfvars.sample
+# -> terraform.tfvars
+aws_region = "{デプロイ先 AWS リージョン}"
+dbx_usermail_admin = "{管理者アカウントのメールアドレス}"
+dbx_workspace_name = "{ワークスペースの名前}"
 ```
 
 **ターミナルを起動し実行**  
@@ -52,25 +71,34 @@ databricks auth profiles
 # ----------------------------
 # 必須: 共通設定
 # ----------------------------
-# AWS の設定を行う。IAMロールの自己仮定の都合で2回デプロイする
-terraform -chdir='terraform/01-aws-base' init
-terraform -chdir='terraform/01-aws-base' apply -var 'is_firststep=true'
-terraform -chdir='terraform/01-aws-base' apply
+# AWS の IAM 等グローバル設定を行う（リージョン非依存）。IAMロールの自己仮定の都合で2回デプロイする
+terraform -chdir='terraform/01-aws-global' init
+terraform -chdir='terraform/01-aws-global' apply -var 'is_firststep=true'
+terraform -chdir='terraform/01-aws-global' apply
 
-# Databricks のアカウントコンソールを設定
-terraform -chdir='terraform/02-databricks-base' init
-terraform -chdir='terraform/02-databricks-base' apply
+# AWS の S3 バケットとその専用 IAM ロールを設定する（リージョン依存）。01-aws-global とは独立して適用可能。IAMロールの自己仮定の都合で2回デプロイする
+terraform -chdir='terraform/01-aws-regional' init
+terraform -chdir='terraform/01-aws-regional' apply -var 'is_firststep=true'
+terraform -chdir='terraform/01-aws-regional' apply
+
+# Databricks のアカウントコンソールを設定（アカウント単位、リージョン非依存）
+terraform -chdir='terraform/02-databricks-global' init
+terraform -chdir='terraform/02-databricks-global' apply
+
+# Databricks のメタストア・ストレージ設定を行う（リージョン依存）。02-databricks-global とは独立して適用可能
+terraform -chdir='terraform/02-databricks-regional' init
+terraform -chdir='terraform/02-databricks-regional' apply
 
 # ----------------------------
 # 任意: 顧客管理 VPC を使う場合
 # ----------------------------
 # AWS の設定を行う
-terraform -chdir='terraform/01-aws-network-cmvpc' init
-terraform -chdir='terraform/01-aws-network-cmvpc' apply
+terraform -chdir='terraform/01-aws-regional-cmvpc' init
+terraform -chdir='terraform/01-aws-regional-cmvpc' apply
 
 # Databricks のアカウントコンソールを設定
-terraform -chdir='terraform/02-databricks-network-cmvpc' init
-terraform -chdir='terraform/02-databricks-network-cmvpc' apply
+terraform -chdir='terraform/02-databricks-regional-cmvpc' init
+terraform -chdir='terraform/02-databricks-regional-cmvpc' apply
 ```
 
 ## 3. Setup Workspace
@@ -80,8 +108,8 @@ terraform -chdir='terraform/02-databricks-network-cmvpc' apply
 ```sh
 # Databricks のワークスペースを作成
 # a. Databricks 管理 VPC を使う場合
-terraform -chdir='terraform/03-databricks-workspace-basic' init
-terraform -chdir='terraform/03-databricks-workspace-basic' apply
+terraform -chdir='terraform/03-databricks-workspace-classic' init
+terraform -chdir='terraform/03-databricks-workspace-classic' apply
 
 # b. 顧客管理 VPC を使う場合
 terraform -chdir='terraform/03-databricks-workspace-cmvpc' init
@@ -90,8 +118,12 @@ terraform -chdir='terraform/03-databricks-workspace-cmvpc' apply
 # c. Databricks Free Edition を使う場合
 databricks auth login -p w01 --host https://{WorkspaceURL}/
 terraform -chdir='terraform/03-databricks-workspace-free' init
-terraform -chdir='terraform/03-databricks-workspace-free' apply -var 'profile=w01'
+terraform -chdir='terraform/03-databricks-workspace-free' apply -var 'dbx_profile=w01'
 
+# d. サーバーレス専用ワークスペースを使う場合
+# NAT ゲートウェイ等のクラシック計算資源を作らないため、料金が発生しにくい
+terraform -chdir='terraform/03-databricks-workspace' init
+terraform -chdir='terraform/03-databricks-workspace' apply
 ```
 
 ## 4. VPC Peering
@@ -124,13 +156,16 @@ terraform -chdir='terraform/05-aws-kafka' apply
 ```sh
 terraform -chdir='terraform/05-aws-kafka' destroy
 terraform -chdir='terraform/04-aws-post' destroy
-terraform -chdir='terraform/03-databricks-workspace-free' destroy -var 'profile=w01'
+terraform -chdir='terraform/03-databricks-workspace-free' destroy -var 'dbx_profile=w01'
 
-terraform -chdir='terraform/03-databricks-workspace-basic' destroy
+terraform -chdir='terraform/03-databricks-workspace-classic' destroy
 terraform -chdir='terraform/03-databricks-workspace-cmvpc' destroy
+terraform -chdir='terraform/03-databricks-workspace' destroy
 
-terraform -chdir='terraform/02-databricks-network-cmvpc' destroy
-terraform -chdir='terraform/02-databricks-base' destroy
-terraform -chdir='terraform/01-aws-network-cmvpc' destroy
-terraform -chdir='terraform/01-aws-base' destroy
+terraform -chdir='terraform/02-databricks-regional-cmvpc' destroy
+terraform -chdir='terraform/02-databricks-regional' destroy
+terraform -chdir='terraform/02-databricks-global' destroy
+terraform -chdir='terraform/01-aws-regional-cmvpc' destroy
+terraform -chdir='terraform/01-aws-regional' destroy
+terraform -chdir='terraform/01-aws-global' destroy
 ```

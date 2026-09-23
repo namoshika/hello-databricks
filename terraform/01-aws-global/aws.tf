@@ -6,19 +6,18 @@ terraform {
     }
   }
   backend "local" {
-    path = "../tfstates/01-aws-base.tfstate"
+    path = "../tfstates/01-aws-global.tfstate"
   }
 }
 
 # ----------------------------
 # Variable
 # ----------------------------
-variable "databricks_account_id" { type = string }
+variable "dbx_account_id" { type = string }
 variable "aws_profile" {
   type    = string
   default = "default"
 }
-variable "aws_s3_bucketname_workspace" { type = string }
 variable "aws_s3_bucketname_input" { type = string }
 variable "is_firststep" {
   type    = bool
@@ -41,20 +40,9 @@ provider "aws" {
 resource "aws_cloudformation_stack" "databricks_base" {
   name          = "dbx-base"
   template_body = file("../../cloudformation/databricks-base.cf.yaml")
-  parameters    = { DatabricksAccountId = var.databricks_account_id }
+  parameters    = { DatabricksAccountId = var.dbx_account_id }
   tags          = local.tags
   capabilities  = ["CAPABILITY_NAMED_IAM"]
-}
-resource "aws_cloudformation_stack" "databricks_storage" {
-  name          = "dbx-workspace-storage"
-  template_body = file("../../cloudformation/databricks-workspace-storage.cf.yaml")
-  parameters = {
-    DatabricksAccountId = var.databricks_account_id,
-    S3BucketName        = var.aws_s3_bucketname_workspace
-    IsFirstStep         = var.is_firststep ? "True" : "False",
-  }
-  tags         = local.tags
-  capabilities = ["CAPABILITY_NAMED_IAM"]
 }
 
 # ----------------------------
@@ -64,7 +52,7 @@ resource "aws_cloudformation_stack" "external_storage" {
   name          = "dbx-external-storage"
   template_body = file("../../cloudformation/external-storage.cf.yaml")
   parameters = {
-    DatabricksAccountId = var.databricks_account_id,
+    DatabricksAccountId = var.dbx_account_id,
     S3BucketName        = var.aws_s3_bucketname_input
     IsFirstStep         = var.is_firststep ? "True" : "False",
   }
@@ -80,12 +68,6 @@ output "aws_iamrole_arn_credential_basic" {
 }
 output "aws_iamrole_arn_credential_cmvpc" {
   value = aws_cloudformation_stack.databricks_base.outputs["IAMRoleForCredentialCmvpc"]
-}
-output "aws_iamrole_arn_storage" {
-  value = aws_cloudformation_stack.databricks_storage.outputs["IamRoleArn"]
-}
-output "aws_s3_bucketname_storage" {
-  value = aws_cloudformation_stack.databricks_storage.outputs["S3BucketName"]
 }
 output "aws_instanceprofile_arn_cluster" {
   value = aws_cloudformation_stack.databricks_base.outputs["InstanceProfileDatabricksCluster"]

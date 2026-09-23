@@ -1,0 +1,4 @@
+aws_profile = "..."
+aws_region = "..."
+aws_s3_bucketname_workspace = "..."
+dbx_account_id = "..."

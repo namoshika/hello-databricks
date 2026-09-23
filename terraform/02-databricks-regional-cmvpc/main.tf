@@ -6,7 +6,7 @@ terraform {
     }
   }
   backend "local" {
-    path = "../tfstates/02-databricks-network-cmvpc.tfstate"
+    path = "../tfstates/02-databricks-regional-cmvpc.tfstate"
   }
 }
 
@@ -17,11 +17,11 @@ variable "aws_region" {
   type    = string
   default = "ap-northeast-1"
 }
-variable "databricks_profile" {
+variable "dbx_profile" {
   type    = string
   default = "DEFAULT"
 }
-variable "databricks_account_id" { type = string }
+variable "dbx_account_id" { type = string }
 
 # ----------------------------
 # Provider
@@ -29,20 +29,16 @@ variable "databricks_account_id" { type = string }
 provider "databricks" {
   alias      = "mws"
   host       = "https://accounts.cloud.databricks.com"
-  account_id = var.databricks_account_id
-  profile    = var.databricks_profile
+  account_id = var.dbx_account_id
+  profile    = var.dbx_profile
 }
 
 # ----------------------------
 # Data
 # ----------------------------
-data "terraform_remote_state" "base" {
-  backend = "local"
-  config  = { path = "../tfstates/01-aws-base.tfstate" }
-}
 data "terraform_remote_state" "network" {
   backend = "local"
-  config  = { path = "../tfstates/01-aws-network-cmvpc.tfstate" }
+  config  = { path = "../tfstates/01-aws-regional-cmvpc.tfstate" }
 }
 locals {
   aws_vpc_id                    = data.terraform_remote_state.network.outputs.aws_vpc_id
@@ -61,21 +57,21 @@ locals {
 # ----------------------------
 resource "databricks_mws_vpc_endpoint" "scc" {
   provider            = databricks.mws
-  account_id          = var.databricks_account_id
+  account_id          = var.dbx_account_id
   region              = var.aws_region
   aws_vpc_endpoint_id = local.aws_endpoint_id_scc
   vpc_endpoint_name   = local.aws_endpoint_name_scc
 }
 resource "databricks_mws_vpc_endpoint" "workspace" {
   provider            = databricks.mws
-  account_id          = var.databricks_account_id
+  account_id          = var.dbx_account_id
   region              = var.aws_region
   aws_vpc_endpoint_id = local.aws_endpoint_id_internal
   vpc_endpoint_name   = local.aws_endpoint_name_internal
 }
 resource "databricks_mws_networks" "cmvpc" {
   provider           = databricks.mws
-  account_id         = var.databricks_account_id
+  account_id         = var.dbx_account_id
   network_name       = local.aws_vpc_name
   vpc_id             = local.aws_vpc_id
   subnet_ids         = [local.aws_subnet_id_cluster_a, local.aws_subnet_id_cluster_b]

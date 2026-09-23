@@ -15,11 +15,11 @@ terraform {
 # ----------------------------
 variable "aws_iamrole_arn_storage_external" { type = string }
 variable "aws_s3_bucketname_storage_external" { type = string }
-variable "databricks_profile" {
+variable "dbx_profile" {
   type    = string
   default = null
 }
-variable "databricks_catalog_name" {
+variable "dbx_catalog_name" {
   type    = string
   default = "workspace"
 }
@@ -29,7 +29,7 @@ variable "databricks_catalog_name" {
 # ----------------------------
 provider "databricks" {
   alias   = "workspace"
-  profile = var.databricks_profile
+  profile = var.dbx_profile
 }
 
 # ----------------------------
@@ -40,7 +40,7 @@ module "external_storage" {
   aws_iam_role_arn                 = var.aws_iamrole_arn_storage_external
   aws_s3_bucketname                = var.aws_s3_bucketname_storage_external
   databricks_principal_owner       = null
-  databricks_uv_mountpoint_catalog = var.databricks_catalog_name
+  databricks_uv_mountpoint_catalog = var.dbx_catalog_name
   databricks_uv_mountpoint_schema  = "default"
   providers = {
     databricks.workspace = databricks.workspace

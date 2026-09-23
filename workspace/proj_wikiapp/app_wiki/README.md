@@ -34,7 +34,7 @@ Lakebase プロジェクトが作成された後、native Postgres ユーザー�
 
 ```bash
 # wikiuser を作成し、public スキーマへの権限を付与
-databricks psql --project dashboard-wikidb --branch production -- \
+databricks psql --project dashboard-wikidb-dev --branch production -- \
   -d databricks_postgres \
   -c "CREATE USER wikiuser WITH PASSWORD '<GENERATED_PASSWORD>';" \
   -c "GRANT ALL ON SCHEMA public TO wikiuser;"
