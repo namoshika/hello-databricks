@@ -2,7 +2,7 @@
     "jupyter.interactiveWindow.cellMarker.codeRegex": "^# COMMAND ----------|^# Databricks notebook source|^(#\\s*%%|#\\s*\\<codecell\\>|#\\s*In\\[\\d*?\\]|#\\s*In\\[ \\])",
     "jupyter.interactiveWindow.cellMarker.default": "# COMMAND ----------",
     "python.testing.pytestArgs": [
-        "."
+        "tests"
     ],
     "files.exclude": {
         "**/*.egg-info": true,
@@ -17,14 +17,14 @@
     // Pylance settings (VS Code)
     // Set typeCheckingMode to "basic" to enable type checking!
     "python.analysis.typeCheckingMode": "off",
-    "python.analysis.extraPaths": ["src", "lib", "resources"],
+    "python.analysis.extraPaths": ["src", "src/utilities", "lib", "resources"],
     "python.analysis.diagnosticMode": "workspace",
     "python.analysis.stubPath": ".vscode",
 
     // Pyright settings (Cursor)
     // Set typeCheckingMode to "basic" to enable type checking!
     "cursorpyright.analysis.typeCheckingMode": "off",
-    "cursorpyright.analysis.extraPaths": ["src", "lib", "resources"],
+    "cursorpyright.analysis.extraPaths": ["src", "src/utilities", "lib", "resources"],
     "cursorpyright.analysis.diagnosticMode": "workspace",
     "cursorpyright.analysis.stubPath": ".vscode",
 
@@ -32,7 +32,7 @@
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
     "[python]": {
-        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.defaultFormatter": "charliermarsh.ruff",
         "editor.formatOnSave": true,
     },
 }

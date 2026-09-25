@@ -3,13 +3,22 @@ name = "assistant_agent_etl"
 version = "0.1.0"
 description = "Databricks Workspace"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
+    "langchain-text-splitters>=1.1.2",
     "pyyaml>=6.0.3",
 ]
 
-[project.optional-dependencies]
-vsc = [
-    "databricks-connect>=16.1.4",
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "databricks-connect~=18.0.0",
     "ipykernel>=6.29.5",
+    "pytest>=9.0.3",
 ]
+
+[tool.databricks.environment]
+environment_version = "5"

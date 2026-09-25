@@ -2,7 +2,7 @@
 # See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
 # yaml-language-server: $schema=.vscode/databricks-asset-bundles.json
 bundle:
-  name: assistant_agent_etl
+  name: proj_assistant_agent_etl
 
 include:
   - resources/*.yml
@@ -30,7 +30,7 @@ sync:
 resources:
   pipelines:
     assistant_agent_etl:
-      name: pipeline-assistant-etl
+      name: pl_assistant_etl
       catalog: ${var.catalog}
       schema: ${var.schema}
       serverless: true
@@ -40,6 +40,7 @@ resources:
       environment:
         dependencies:
           - pyyaml
+          - langchain-text-splitters
       configuration:
         DATA_BUCKET_NAME: ${var.aws_s3_bucketname_storage}
 

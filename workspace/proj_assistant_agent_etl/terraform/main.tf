@@ -36,13 +36,13 @@ provider "databricks" {
 # Vector Search Index
 # ----------------------------
 resource "databricks_vector_search_index" "main" {
-  name          = "${var.databricks_catalog_name}.${var.databricks_schema_name}.b_website_vsi"
+  name          = "${var.databricks_catalog_name}.${var.databricks_schema_name}.b_wikipedia_vsi"
   endpoint_name = "vsi_endpoint"
   primary_key   = "document_id"
   index_type    = "DELTA_SYNC"
 
   delta_sync_index_spec {
-    source_table  = "${var.databricks_catalog_name}.${var.databricks_schema_name}.b_website"
+    source_table  = "${var.databricks_catalog_name}.${var.databricks_schema_name}.b_wikipedia"
     pipeline_type = "TRIGGERED"
     # columns_to_sync = ["document_id", "original_url"]
     embedding_source_columns {
