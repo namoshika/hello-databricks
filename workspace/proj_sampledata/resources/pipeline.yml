@@ -4,7 +4,7 @@
 resources:
   pipelines:
     pipeline_sample:
-      name: pl-sampledata
+      name: pl_sampledata
       catalog: ${var.catalog}
       schema: ${var.schema}
       serverless: true
