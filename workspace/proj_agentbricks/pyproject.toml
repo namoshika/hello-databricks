@@ -1,0 +1,23 @@
+[project]
+name = "hello-agentbricks"
+version = "0.1.0"
+description = "Agent Bricks の最小構成のエージェント"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "databricks-agentbricks[langgraph]>=0.9.0",
+    "databricks-langchain>=0.21.0",
+    "fastapi-cli>=0.0.32",
+]
+
+[build-system]
+requires = ["uv_build>=0.10.9,<0.11.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.4.0",
+]
+
+[tool.fastapi]
+entrypoint = "hello_agentbricks.main:app"
